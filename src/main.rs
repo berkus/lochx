@@ -28,7 +28,7 @@ fn main() -> Result<()> {
     }
 
     if args.script.len() == 1 {
-        run_script(&args.script[0]);
+        run_script(&args.script[0])?;
     } else {
         run_repl();
     }
@@ -37,4 +37,10 @@ fn main() -> Result<()> {
 }
 
 fn run_repl() {}
-fn run_script(_script: &str) {}
+
+fn run_script(script: &str) -> Result<()> {
+    let contents = std::fs::read_to_string(script)?;
+    run(&contents)
+}
+
+fn run(_text: &str) -> Result<()> { Ok(()) }
