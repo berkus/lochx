@@ -14,14 +14,27 @@ pub struct Token<'a> {
     r#type: TokenType,
     lexeme: &'a str, // @todo: Use Range into a source str (to print error information)
     line: usize,
+    literal: Option<LiteralValue>,
+}
+
+#[derive(Debug, Clone)]
+enum LiteralValue {
+    Str(String),
+    Num(f64),
 }
 
 impl<'a> Token<'a> {
-    pub fn new(r#type: TokenType, lexeme: &'a str, line: usize) -> Self {
+    pub fn new(
+        r#type: TokenType,
+        lexeme: &'a str,
+        line: usize,
+        literal: Option<LiteralValue>,
+    ) -> Self {
         Self {
             r#type,
             lexeme,
             line,
+            literal,
         }
     }
 }
@@ -158,6 +171,7 @@ impl<'a> Scanner<'a> {
                 }
             }
             '"' => self.string(),
+            '0'..='9' => self.number(),
             ' ' | '\r' | '\t' => {
                 // Ignore whitespace.
             }
@@ -193,12 +207,21 @@ impl<'a> Scanner<'a> {
     }
 
     fn peek(&self) -> char {
-        if self.is_at_end() {
+        self.peek_offset(0)
+    }
+
+    fn peek_next(&self) -> char {
+        self.peek_offset(1)
+    }
+
+    // @internal
+    fn peek_offset(&self, offset: usize) -> char {
+        if self.current + offset >= self.source.len() {
             return '\0';
         }
         self.source
             .chars()
-            .nth(self.current)
+            .nth(self.current + offset)
             .expect("Got past end of input")
     }
 
@@ -222,15 +245,34 @@ impl<'a> Scanner<'a> {
         // Skip " " around the string value.
         let value = &self.source[self.start + 1..self.current - 1];
 
-        self.add_token_with_value(TokenType::String, value);
+        self.add_token_with_value(TokenType::String, LiteralValue::Str(value.into()));
+    }
+
+    fn number(&mut self) {
+        while self.peek().is_digit(10) {
+            self.advance();
+        }
+        if self.peek() == '.' && self.peek_next().is_digit(10) {
+            self.advance();
+            while self.peek().is_digit(10) {
+                self.advance();
+            }
+        }
+        self.add_token_with_value(
+            TokenType::Number,
+            LiteralValue::Num(self.source[self.start..self.current].parse().expect("TODO")),
+        );
     }
 
     fn add_token(&mut self, r#type: TokenType) {
         let lexeme = &self.source[self.start..self.current];
-        self.tokens.push(Token::new(r#type, lexeme, self.line));
+        self.tokens
+            .push(Token::new(r#type, lexeme, self.line, None));
     }
 
-    fn add_token_with_value(&mut self, r#type: TokenType, lexeme: &'a str) {
-        self.tokens.push(Token::new(r#type, lexeme, self.line));
+    // Ignores lexeme for now, but for debugging we probably want to keep it around anyway?
+    fn add_token_with_value(&mut self, r#type: TokenType, value: LiteralValue) {
+        self.tokens
+            .push(Token::new(r#type, "", self.line, Some(value)));
     }
 }
