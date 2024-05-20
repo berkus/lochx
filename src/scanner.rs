@@ -157,6 +157,7 @@ impl<'a> Scanner<'a> {
                     self.add_token(TokenType::Slash);
                 }
             }
+            '"' => self.string(),
             ' ' | '\r' | '\t' => {
                 // Ignore whitespace.
             }
@@ -201,8 +202,35 @@ impl<'a> Scanner<'a> {
             .expect("Got past end of input")
     }
 
+    fn string(&mut self) {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+        if self.is_at_end() {
+            error(
+                self.line,
+                &format!("Unterminated string starting at {}.", self.start),
+            );
+            return;
+        }
+        // The closing ".
+        self.advance();
+
+        // Skip " " around the string value.
+        let value = &self.source[self.start + 1..self.current - 1];
+
+        self.add_token_with_value(TokenType::String, value);
+    }
+
     fn add_token(&mut self, r#type: TokenType) {
         let lexeme = &self.source[self.start..self.current];
+        self.tokens.push(Token::new(r#type, lexeme, self.line));
+    }
+
+    fn add_token_with_value(&mut self, r#type: TokenType, lexeme: &'a str) {
         self.tokens.push(Token::new(r#type, lexeme, self.line));
     }
 }
