@@ -1,4 +1,4 @@
-use crate::error;
+use {crate::error, maplit::hashmap, std::collections::HashMap};
 
 /// Current scanner state for iterating over the source input.
 pub struct Scanner<'a> {
@@ -7,6 +7,7 @@ pub struct Scanner<'a> {
     start: usize,
     current: usize,
     tokens: Vec<Token<'a>>,
+    keywords: HashMap<&'static str, TokenType>,
 }
 
 #[derive(Debug, Clone)]
@@ -18,7 +19,7 @@ pub struct Token<'a> {
 }
 
 #[derive(Debug, Clone)]
-enum LiteralValue {
+pub enum LiteralValue {
     Str(String),
     Num(f64),
 }
@@ -45,7 +46,7 @@ impl std::fmt::Display for Token<'_> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum TokenType {
     EOF,
 
@@ -104,6 +105,24 @@ impl<'a> Scanner<'a> {
             current: 0,
             start: 0,
             tokens: vec![],
+            keywords: hashmap! {
+                "and" => TokenType::KwAnd,
+                "class" => TokenType::KwClass,
+                "else" => TokenType::KwElse,
+                "false" => TokenType::KwFalse,
+                "for" => TokenType::KfFor,
+                "fun" => TokenType::KwFun,
+                "if" => TokenType::KwIf,
+                "nil" => TokenType::KwNil,
+                "or" => TokenType::KwOr,
+                "print" => TokenType::KwPrint,
+                "return" => TokenType::KwReturn,
+                "super" => TokenType::KwSuper,
+                "this" => TokenType::KwThis,
+                "true" => TokenType::KwTrue,
+                "var" => TokenType::KwVar,
+                "while" => TokenType::KwWhile,
+            },
         }
     }
 
@@ -172,6 +191,7 @@ impl<'a> Scanner<'a> {
             }
             '"' => self.string(),
             '0'..='9' => self.number(),
+            d if d.is_alphabetic() => self.identifier(),
             ' ' | '\r' | '\t' => {
                 // Ignore whitespace.
             }
@@ -262,6 +282,23 @@ impl<'a> Scanner<'a> {
             TokenType::Number,
             LiteralValue::Num(self.source[self.start..self.current].parse().expect("TODO")),
         );
+    }
+
+    fn identifier(&mut self) {
+        while self.peek().is_alphanumeric() {
+            self.advance();
+        }
+
+        let lexeme = self.lexeme();
+        if self.keywords.contains_key(&lexeme) {
+            self.add_token(self.keywords[&lexeme]);
+        } else {
+            self.add_token(TokenType::Identifier);
+        }
+    }
+
+    fn lexeme(&self) -> &str {
+        &self.source[self.start..self.current]
     }
 
     fn add_token(&mut self, r#type: TokenType) {
