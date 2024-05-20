@@ -116,6 +116,38 @@ impl<'a> Scanner<'a> {
             '+' => self.add_token(TokenType::Plus),
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
+            '!' => {
+                let r#type = if self.matches('=') {
+                    TokenType::BangEqual
+                } else {
+                    TokenType::Bang
+                };
+                self.add_token(r#type);
+            }
+            '=' => {
+                let r#type = if self.matches('=') {
+                    TokenType::EqualEqual
+                } else {
+                    TokenType::Equal
+                };
+                self.add_token(r#type);
+            }
+            '<' => {
+                let r#type = if self.matches('=') {
+                    TokenType::LessEqual
+                } else {
+                    TokenType::Less
+                };
+                self.add_token(r#type);
+            }
+            '>' => {
+                let r#type = if self.matches('=') {
+                    TokenType::GreaterEqual
+                } else {
+                    TokenType::Greater
+                };
+                self.add_token(r#type);
+            }
             _ => {
                 error(self.line, &format!("Unexpected character `{}`", c));
             }
@@ -130,6 +162,18 @@ impl<'a> Scanner<'a> {
         let c = self.source.chars().nth(self.current);
         self.current += 1;
         c.expect("Got past end of input")
+    }
+
+    /// Return true and advance if the next character is the expected one.
+    fn matches(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        if self.source.chars().nth(self.current) != Some(expected) {
+            return false;
+        }
+        self.current += 1;
+        return true;
     }
 
     fn add_token(&mut self, r#type: TokenType) {
