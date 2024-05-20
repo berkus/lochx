@@ -40,31 +40,6 @@ fn main() {
 
     let io = liso::InputOutput::new();
     let _ = OUT.set(io.clone_output());
-
-    // sdsdf
-    let expr = expr::Expr::Binary(Box::new(expr::Binary {
-        left: Box::new(expr::Expr::Unary(Box::new(expr::Unary {
-            op: scanner::Token::new(scanner::TokenType::Minus, "-", 1, None),
-            right: Box::new(expr::Expr::Literal(Box::new(expr::Literal {
-                value: scanner::LiteralValue::Num(123.0),
-            }))),
-        }))),
-        op: scanner::Token::new(scanner::TokenType::Star, "*", 1, None),
-        right: Box::new(expr::Expr::Grouping(Box::new(expr::Grouping {
-            expr: Box::new(expr::Expr::Literal(Box::new(expr::Literal {
-                value: scanner::LiteralValue::Num(45.67),
-            }))),
-        }))),
-    }));
-
-    OUT.get().expect("OOPS").wrapln(liso!(
-        fg = green,
-        dim,
-        ast_printer::AstPrinter::new().print(&expr),
-        reset
-    ));
-    // sdsdf
-
     if args.script.len() == 1 {
         run_script(&args.script[0])?;
     } else {
