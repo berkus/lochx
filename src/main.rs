@@ -2,7 +2,8 @@ use {
     anyhow::{anyhow, Error},
     argh::FromArgs,
     culpa::{throw, throws},
-    liso::{liso, Response},
+    liso::{liso, OutputOnly, Response},
+    std::sync::OnceLock,
 };
 
 mod scanner;
@@ -36,12 +37,15 @@ fn main() {
     }
 
     let io = liso::InputOutput::new();
+    let _ = OUT.set(io.clone_output());
     if args.script.len() == 1 {
-        run_script(&args.script[0], io.clone_output())?;
+        run_script(&args.script[0])?;
     } else {
         run_repl(io)?;
     }
 }
+
+static OUT: OnceLock<OutputOnly> = OnceLock::new();
 
 #[throws]
 fn run_repl(mut io: liso::InputOutput) {
@@ -50,7 +54,7 @@ fn run_repl(mut io: liso::InputOutput) {
         match io.read_blocking() {
             Response::Input(line) => {
                 io.echoln(liso!(fg = green, dim, "> ", fg = none, &line));
-                run(line.as_str(), io.clone_output())?
+                run(line.as_str())?
             }
             Response::Discarded(line) => {
                 io.echoln(liso!(bold + dim, "X ", -bold, line));
@@ -64,13 +68,13 @@ fn run_repl(mut io: liso::InputOutput) {
 }
 
 #[throws]
-fn run_script(script: &str, out: liso::OutputOnly) {
+fn run_script(script: &str) {
     let contents = std::fs::read_to_string(script)?;
-    run(&contents, out)?
+    run(&contents)?
 }
 
 #[throws]
-fn run(source: &str, out: liso::OutputOnly) {
+fn run(source: &str) {
     use crate::scanner::Scanner;
 
     let mut scanner = Scanner::new(source);
@@ -78,6 +82,19 @@ fn run(source: &str, out: liso::OutputOnly) {
 
     // For now just print the tokens
     for token in tokens {
-        out.wrapln(liso!(fg = blue, format!("{:?}", token), fg = none));
+        OUT.get().expect("Must be set at start").wrapln(liso!(
+            fg = blue,
+            format!("{:?}", token),
+            fg = none
+        ));
     }
+}
+
+pub fn error(line: usize, message: &str) {
+    OUT.get().expect("Must be set at start").wrapln(liso!(
+        fg = red,
+        bold,
+        format!("[line {}] {}", line, message),
+        reset
+    ))
 }
