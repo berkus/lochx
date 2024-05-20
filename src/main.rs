@@ -6,6 +6,8 @@ use {
     std::sync::OnceLock,
 };
 
+mod ast_printer;
+mod expr;
 mod scanner;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");

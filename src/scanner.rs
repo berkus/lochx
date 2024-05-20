@@ -22,6 +22,7 @@ pub struct Token<'a> {
 pub enum LiteralValue {
     Str(String),
     Num(f64),
+    Nil,
 }
 
 impl<'a> Token<'a> {
@@ -37,6 +38,10 @@ impl<'a> Token<'a> {
             line,
             literal,
         }
+    }
+
+    pub fn lexeme(&self) -> String {
+        self.lexeme.to_string()
     }
 }
 
