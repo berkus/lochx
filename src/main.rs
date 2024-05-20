@@ -5,6 +5,8 @@ use {
     liso::{liso, Response},
 };
 
+mod scanner;
+
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -33,22 +35,22 @@ fn main() {
         throw!(anyhow!("Usage: lochx [script file]"));
     }
 
+    let io = liso::InputOutput::new();
     if args.script.len() == 1 {
-        run_script(&args.script[0])?;
+        run_script(&args.script[0], io.clone_output())?;
     } else {
-        run_repl()?;
+        run_repl(io)?;
     }
 }
 
 #[throws]
-fn run_repl() {
-    let mut io = liso::InputOutput::new();
+fn run_repl(mut io: liso::InputOutput) {
     io.prompt(liso!(fg = green, bold, "> ", reset), true, false);
     loop {
         match io.read_blocking() {
             Response::Input(line) => {
                 io.echoln(liso!(fg = green, dim, "> ", fg = none, &line));
-                run(line.as_str())?
+                run(line.as_str(), io.clone_output())?
             }
             Response::Discarded(line) => {
                 io.echoln(liso!(bold + dim, "X ", -bold, line));
@@ -62,10 +64,20 @@ fn run_repl() {
 }
 
 #[throws]
-fn run_script(script: &str) {
+fn run_script(script: &str, out: liso::OutputOnly) {
     let contents = std::fs::read_to_string(script)?;
-    run(&contents)?
+    run(&contents, out)?
 }
 
 #[throws]
-fn run(_text: &str) {}
+fn run(source: &str, out: liso::OutputOnly) {
+    use crate::scanner::Scanner;
+
+    let mut scanner = Scanner::new(source);
+    let tokens = scanner.scan_tokens();
+
+    // For now just print the tokens
+    for token in tokens {
+        out.wrapln(liso!(fg = blue, format!("{:?}", token), fg = none));
+    }
+}
