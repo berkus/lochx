@@ -148,6 +148,15 @@ impl<'a> Scanner<'a> {
                 };
                 self.add_token(r#type);
             }
+            '/' => {
+                if self.matches('/') {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(TokenType::Slash);
+                }
+            }
             _ => {
                 error(self.line, &format!("Unexpected character `{}`", c));
             }
@@ -174,6 +183,16 @@ impl<'a> Scanner<'a> {
         }
         self.current += 1;
         return true;
+    }
+
+    fn peek(&self) -> char {
+        if self.is_at_end() {
+            return '\0';
+        }
+        self.source
+            .chars()
+            .nth(self.current)
+            .expect("Got past end of input")
     }
 
     fn add_token(&mut self, r#type: TokenType) {
