@@ -15,6 +15,7 @@ impl AstPrinter {
         Self {}
     }
 
+    #[allow(dead_code)]
     #[throws(RuntimeError)]
     pub fn print_expr(&self, e: &Expr) -> String {
         e.accept(self)?
