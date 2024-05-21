@@ -188,7 +188,12 @@ impl Parser {
         if self.check(t) {
             return self.advance();
         }
-        throw!(anyhow!(message.to_string())); // @todo Use self.peek() here to lookup what we got
+        throw!(anyhow!(
+            "{} (expected {:?}, got {})",
+            message.to_string(),
+            t,
+            self.peek()
+        ));
     }
 
     fn check(&self, t: TokenType) -> bool {

@@ -86,7 +86,14 @@ fn run(source: &str) {
 
     let mut parser = Parser::new(tokens);
 
-    let ast = parser.parse()?;
+    let ast = parser.parse();
+
+    if let Err(e) = ast {
+        error(1, e.to_string().as_str());
+        return;
+    }
+
+    let ast = ast.unwrap();
 
     let printer = AstPrinter::new();
 
