@@ -1,17 +1,29 @@
-use crate::{
-    expr::{self, Acceptor, Expr},
-    scanner::{LiteralValue, TokenType},
+use {
+    crate::{
+        expr::{self, Acceptor as ExprAcceptor, Expr},
+        scanner::{LiteralValue, TokenType},
+        stmt::{self, Acceptor as StmtAcceptor, Stmt},
+    },
+    liso::{liso, OutputOnly},
 };
 
-pub struct Interpreter;
+pub struct Interpreter {
+    out: OutputOnly,
+}
 
 impl Interpreter {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(out: OutputOnly) -> Self {
+        Self { out }
     }
 
-    pub fn interpret(&self, expr: &Expr) -> LiteralValue {
-        self.evaluate(expr)
+    pub fn interpret(&self, statements: Vec<Stmt>) {
+        for stmt in statements {
+            self.execute(&stmt);
+        }
+    }
+
+    fn execute(&self, stmt: &Stmt) {
+        stmt.accept(self);
     }
 
     fn evaluate(&self, expr: &Expr) -> LiteralValue {
@@ -25,6 +37,20 @@ impl Interpreter {
             LiteralValue::Bool(b) => *b,
             _ => true,
         }
+    }
+}
+
+impl stmt::Visitor for Interpreter {
+    type ReturnType = ();
+
+    fn visit_print_stmt(&self, stmt: &Expr) -> Self::ReturnType {
+        let expr = self.evaluate(stmt);
+        self.out
+            .wrapln(liso!(fg = magenta, format!("{:?}", expr), reset)); // @todo stringify
+    }
+
+    fn visit_expression_stmt(&self, stmt: &Expr) -> Self::ReturnType {
+        self.evaluate(stmt);
     }
 }
 

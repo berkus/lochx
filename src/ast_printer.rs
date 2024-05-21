@@ -1,6 +1,7 @@
 use crate::{
-    expr::{self, Acceptor, Expr},
+    expr::{self, Acceptor as ExprAcceptor, Expr},
     scanner::LiteralValue,
+    stmt::{self, Acceptor as StmtAcceptor, Stmt},
 };
 
 pub struct AstPrinter;
@@ -10,8 +11,16 @@ impl AstPrinter {
         Self {}
     }
 
-    pub fn print(&self, e: &Expr) -> String {
+    pub fn print_expr(&self, e: &Expr) -> String {
         e.accept(self)
+    }
+
+    pub fn print_stmt(&self, statements: Vec<Stmt>) -> String {
+        let mut str = String::new();
+        for stmt in statements {
+            str += &stmt.accept(self)
+        }
+        str
     }
 
     fn parenthesize(&self, name: String, exprs: Vec<Box<Expr>>) -> String {
@@ -22,6 +31,24 @@ impl AstPrinter {
         }
         s += ")";
         s
+    }
+}
+
+impl stmt::Visitor for AstPrinter {
+    type ReturnType = String;
+
+    fn visit_print_stmt(&self, stmt: &Expr) -> Self::ReturnType {
+        format!(
+            "{};",
+            self.parenthesize("print".into(), vec![Box::new(stmt.clone())])
+        )
+    }
+
+    fn visit_expression_stmt(&self, stmt: &Expr) -> Self::ReturnType {
+        format!(
+            "{};",
+            self.parenthesize("".into(), vec![Box::new(stmt.clone())])
+        )
     }
 }
 

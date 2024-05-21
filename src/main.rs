@@ -13,6 +13,7 @@ mod expr;
 mod interpreter;
 mod parser;
 mod scanner;
+mod stmt;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -44,7 +45,7 @@ fn main() {
 
     let io = liso::InputOutput::new();
     let _ = OUT.set(io.clone_output());
-    let _ = INTERPRETER.set(Interpreter::new());
+    let _ = INTERPRETER.set(Interpreter::new(io.clone_output()));
 
     if args.script.len() == 1 {
         run_script(&args.script[0])?;
@@ -104,12 +105,12 @@ fn run(source: &str) {
 
     OUT.get().expect("Must be set at start").wrapln(liso!(
         fg = blue,
-        &printer.print(&ast),
+        &printer.print_stmt(ast.clone()),
         fg = none
     ));
 
     let interpreter = INTERPRETER.get().expect("Must be set at start");
-    let value = interpreter.interpret(&ast);
+    let value = interpreter.interpret(ast);
 
     OUT.get().expect("Must be set at start").wrapln(liso!(
         fg = green,

@@ -2,6 +2,7 @@ use {
     crate::{
         expr::{self, Expr},
         scanner::{LiteralValue, Token, TokenType},
+        stmt::Stmt,
     },
     anyhow::{anyhow, Error},
     culpa::{throw, throws},
@@ -14,6 +15,11 @@ pub struct Parser {
 
 /// Recursive descent parser for the Lox grammar:
 /// ```text
+/// program        → statement* EOF ;
+/// statement      → exprStmt
+///                | printStmt ;
+/// exprStmt       → expression ";" ;
+/// printStmt      → "print" expression ";" ;
 /// expression     → equality ;
 /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
@@ -31,8 +37,39 @@ impl Parser {
     }
 
     #[throws]
-    pub fn parse(&mut self) -> Expr {
-        self.expression()?
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        self.program()?
+    }
+
+    #[throws]
+    fn program(&mut self) -> Vec<Stmt> {
+        let mut statements = vec![];
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
+        }
+        statements
+    }
+
+    #[throws]
+    fn statement(&mut self) -> Stmt {
+        if self.match_any(vec![TokenType::KwPrint]) {
+            return self.print_stmt()?;
+        }
+        self.expr_stmt()?
+    }
+
+    #[throws]
+    fn print_stmt(&mut self) -> Stmt {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
+        Stmt::Print(expr)
+    }
+
+    #[throws]
+    fn expr_stmt(&mut self) -> Stmt {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
+        Stmt::Expression(expr)
     }
 
     #[throws]
@@ -170,6 +207,7 @@ impl Parser {
                 expr: Box::new(expr),
             }));
         }
+        // @todo Throw ParseError with location info
         throw!(anyhow!("Expected expression"));
     }
 
@@ -183,6 +221,7 @@ impl Parser {
         false
     }
 
+    // @todo Throw ParseError with location info
     #[throws]
     fn consume(&mut self, t: TokenType, message: &str) {
         if self.check(t) {
