@@ -6,4 +6,6 @@ pub enum RuntimeError {
     UndefinedVariable(String),
     #[error("invalid assignment target. Expected variable name.")]
     InvalidAssignmentTarget(Token),
+    #[error("Expected expression")]
+    ExpectedExpression,
 }

@@ -276,7 +276,7 @@ impl Parser {
             });
         }
         // @todo Throw ParseError with location info
-        throw!(anyhow!("Expected expression"));
+        throw!(RuntimeError::ExpectedExpression);
     }
 
     fn match_any(&mut self, types: Vec<TokenType>) -> bool {
