@@ -9,6 +9,7 @@ pub trait Visitor {
     fn visit_unary_expr(&self, expr: &Unary) -> Self::ReturnType;
     fn visit_grouping_expr(&self, expr: &Grouping) -> Self::ReturnType;
     fn visit_literal_expr(&self, expr: &Literal) -> Self::ReturnType;
+    fn visit_var_expr(&self, expr: &Var) -> Self::ReturnType;
 }
 
 /// Expression visitor acceptor.
@@ -23,17 +24,13 @@ pub enum Expr {
     Unary(Unary),
     Grouping(Grouping),
     Literal(Literal),
+    Variable(Var),
 }
 
-impl Acceptor for Expr {
-    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
-        match self {
-            Expr::Binary(e) => e.accept(visitor),
-            Expr::Unary(e) => e.accept(visitor),
-            Expr::Grouping(e) => e.accept(visitor),
-            Expr::Literal(e) => e.accept(visitor),
-        }
-    }
+#[derive(Debug, Clone)]
+pub struct Unary {
+    pub op: Token,
+    pub right: Box<Expr>,
 }
 
 #[derive(Debug, Clone)]
@@ -43,16 +40,37 @@ pub struct Binary {
     pub right: Box<Expr>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Grouping {
+    pub expr: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Literal {
+    pub value: LiteralValue,
+}
+
+#[derive(Debug, Clone)]
+pub struct Var {
+    pub name: Token,
+}
+
+impl Acceptor for Expr {
+    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
+        match self {
+            Expr::Binary(e) => e.accept(visitor),
+            Expr::Unary(e) => e.accept(visitor),
+            Expr::Grouping(e) => e.accept(visitor),
+            Expr::Literal(e) => e.accept(visitor),
+            Expr::Variable(e) => e.accept(visitor),
+        }
+    }
+}
+
 impl Acceptor for Binary {
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
         visitor.visit_binary_expr(self)
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct Unary {
-    pub op: Token,
-    pub right: Box<Expr>,
 }
 
 impl Acceptor for Unary {
@@ -61,24 +79,20 @@ impl Acceptor for Unary {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Grouping {
-    pub expr: Box<Expr>,
-}
-
 impl Acceptor for Grouping {
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
         visitor.visit_grouping_expr(self)
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Literal {
-    pub value: LiteralValue,
-}
-
 impl Acceptor for Literal {
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
         visitor.visit_literal_expr(self)
+    }
+}
+
+impl Acceptor for Var {
+    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
+        visitor.visit_var_expr(self)
     }
 }

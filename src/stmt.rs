@@ -1,9 +1,16 @@
-use crate::expr::Expr;
+use crate::{expr::Expr, scanner::Token};
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Print(Expr),
     Expression(Expr),
+    VarDecl(VarDecl),
+}
+
+#[derive(Debug, Clone)]
+struct VarDecl {
+    pub name: Token,
+    pub initializer: Expr,
 }
 
 /// Statements visitor.
@@ -12,6 +19,7 @@ pub trait Visitor {
 
     fn visit_print_stmt(&self, stmt: &Expr) -> Self::ReturnType;
     fn visit_expression_stmt(&self, stmt: &Expr) -> Self::ReturnType;
+    fn visit_vardecl_stmt(&self, stmt: &VarDecl) -> Self::ReturnType;
 }
 
 /// Statement visitor acceptor.
@@ -24,6 +32,7 @@ impl Acceptor for Stmt {
         match self {
             Stmt::Print(e) => visitor.visit_print_stmt(e),
             Stmt::Expression(e) => visitor.visit_expression_stmt(e),
+            Stmt::VarDecl(d) => visitor.visit_vardecl_stmt(d),
         }
     }
 }

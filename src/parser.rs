@@ -15,7 +15,10 @@ pub struct Parser {
 
 /// Recursive descent parser for the Lox grammar:
 /// ```text
-/// program        → statement* EOF ;
+/// program        → declaration* EOF ;
+/// declaration    → varDecl
+///                | statement ;
+/// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 /// statement      → exprStmt
 ///                | printStmt ;
 /// exprStmt       → expression ";" ;
@@ -27,7 +30,7 @@ pub struct Parser {
 /// factor         → unary ( ( "/" | "*" ) unary )* ;
 /// unary          → ( "!" | "-" ) unary
 ///                | primary ;
-/// primary        → NUMBER | STRING | "true" | "false" | "nil"
+/// primary        → NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil"
 ///                | "(" expression ")" ;
 /// ```
 /// Grammar productions are in order of increasing precedence from top to bottom.
