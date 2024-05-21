@@ -101,14 +101,14 @@ impl Parser {
     #[throws]
     fn print_stmt(&mut self) -> Stmt {
         let expr = self.expression()?;
-        self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
+        self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
         Stmt::Print(expr)
     }
 
     #[throws]
     fn expr_stmt(&mut self) -> Stmt {
         let expr = self.expression()?;
-        self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
+        self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
         Stmt::Expression(expr)
     }
 
