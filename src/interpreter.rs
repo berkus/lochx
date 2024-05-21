@@ -6,7 +6,7 @@ use {
         scanner::{LiteralValue, TokenType},
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
-    culpa::{throw, throws},
+    culpa::throws,
     liso::{liso, OutputOnly},
 };
 
@@ -153,10 +153,6 @@ impl expr::Visitor for Interpreter {
 
     #[throws(RuntimeError)]
     fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
-        let value = self.env.get(expr.name.clone());
-        if value.is_none() {
-            throw!(RuntimeError::UndefinedVariable(expr.name.lexeme().clone()));
-        }
-        value.unwrap()
+        self.env.get(expr.name.clone())?
     }
 }

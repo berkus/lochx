@@ -1,5 +1,9 @@
 use {
-    crate::scanner::{LiteralValue, Token},
+    crate::{
+        error::RuntimeError,
+        scanner::{LiteralValue, Token},
+    },
+    culpa::{throw, throws},
     std::collections::HashMap,
 };
 
@@ -13,10 +17,11 @@ impl Environment {
         self.values.insert(name, value);
     }
 
-    pub fn get(&self, name: Token) -> Option<LiteralValue> {
+    #[throws(RuntimeError)]
+    pub fn get(&self, name: Token) -> LiteralValue {
         if self.values.contains_key(&name.lexeme()) {
-            return self.values.get(&name.lexeme()).cloned();
+            return self.values.get(&name.lexeme()).unwrap().clone();
         }
-        None
+        throw!(RuntimeError::UndefinedVariable(name.lexeme()))
     }
 }
