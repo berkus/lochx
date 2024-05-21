@@ -3,12 +3,14 @@ use {
     anyhow::{anyhow, Error},
     argh::FromArgs,
     culpa::{throw, throws},
+    interpreter::Interpreter,
     liso::{liso, OutputOnly, Response},
     std::sync::OnceLock,
 };
 
 mod ast_printer;
 mod expr;
+mod interpreter;
 mod parser;
 mod scanner;
 
@@ -42,6 +44,8 @@ fn main() {
 
     let io = liso::InputOutput::new();
     let _ = OUT.set(io.clone_output());
+    let _ = INTERPRETER.set(Interpreter::new());
+
     if args.script.len() == 1 {
         run_script(&args.script[0])?;
     } else {
@@ -50,6 +54,7 @@ fn main() {
 }
 
 static OUT: OnceLock<OutputOnly> = OnceLock::new();
+static INTERPRETER: OnceLock<Interpreter> = OnceLock::new();
 
 #[throws]
 fn run_repl(mut io: liso::InputOutput) {
@@ -100,6 +105,15 @@ fn run(source: &str) {
     OUT.get().expect("Must be set at start").wrapln(liso!(
         fg = blue,
         &printer.print(&ast),
+        fg = none
+    ));
+
+    let interpreter = INTERPRETER.get().expect("Must be set at start");
+    let value = interpreter.interpret(&ast);
+
+    OUT.get().expect("Must be set at start").wrapln(liso!(
+        fg = green,
+        format!("{:?}", value),
         fg = none
     ));
 }
