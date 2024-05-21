@@ -11,14 +11,6 @@ pub struct Scanner<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Token {
-    pub r#type: TokenType,
-    lexeme: String, // @todo: Use Range into a source str (to print error information)
-    line: usize,
-    literal: Option<LiteralValue>,
-}
-
-#[derive(Debug, Clone)]
 pub enum LiteralValue {
     Str(String),
     Num(f64),
@@ -39,6 +31,14 @@ impl std::fmt::Display for LiteralValue {
             }
         )
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Token {
+    pub r#type: TokenType,
+    lexeme: String, // @todo: Use Range into a source str (to print error information)
+    line: usize,
+    literal: Option<LiteralValue>,
 }
 
 impl Token {
