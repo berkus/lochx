@@ -1,4 +1,5 @@
 use {
+    crate::{ast_printer::AstPrinter, parser::Parser},
     anyhow::{anyhow, Error},
     argh::FromArgs,
     culpa::{throw, throws},
@@ -8,6 +9,7 @@ use {
 
 mod ast_printer;
 mod expr;
+mod parser;
 mod scanner;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
@@ -82,15 +84,19 @@ fn run(source: &str) {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens();
 
-    // For now just print the tokens
-    for token in tokens {
-        OUT.get().expect("Must be set at start").wrapln(liso!(
-            fg = blue,
-            format!("{:?}", token),
-            fg = none
-        ));
-    }
+    let mut parser = Parser::new(tokens);
+
+    let ast = parser.parse()?;
+
+    let printer = AstPrinter::new();
+
+    OUT.get().expect("Must be set at start").wrapln(liso!(
+        fg = blue,
+        &printer.print(&ast),
+        fg = none
+    ));
 }
+// @todo use nom_report to report exact parse error locations
 
 pub fn error(line: usize, message: &str) {
     OUT.get().expect("Must be set at start").wrapln(liso!(

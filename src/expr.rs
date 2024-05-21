@@ -18,14 +18,14 @@ pub trait Acceptor {
 
 /// Expression AST node.
 #[derive(Debug, Clone)]
-pub enum Expr<'a> {
-    Binary(Box<Binary<'a>>),
-    Unary(Box<Unary<'a>>),
-    Grouping(Box<Grouping<'a>>),
+pub enum Expr {
+    Binary(Box<Binary>),
+    Unary(Box<Unary>),
+    Grouping(Box<Grouping>),
     Literal(Box<Literal>),
 }
 
-impl<'a> Acceptor for Expr<'a> {
+impl Acceptor for Expr {
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
         match self {
             Expr::Binary(e) => e.accept(visitor),
@@ -37,36 +37,36 @@ impl<'a> Acceptor for Expr<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Binary<'a> {
-    pub left: Box<Expr<'a>>,
-    pub op: Token<'a>,
-    pub right: Box<Expr<'a>>,
+pub struct Binary {
+    pub left: Box<Expr>,
+    pub op: Token,
+    pub right: Box<Expr>,
 }
 
-impl<'a> Acceptor for Binary<'a> {
+impl Acceptor for Binary {
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
         visitor.visit_binary_expr(self)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Unary<'a> {
-    pub op: Token<'a>,
-    pub right: Box<Expr<'a>>,
+pub struct Unary {
+    pub op: Token,
+    pub right: Box<Expr>,
 }
 
-impl<'a> Acceptor for Unary<'a> {
+impl Acceptor for Unary {
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
         visitor.visit_unary_expr(self)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Grouping<'a> {
-    pub expr: Box<Expr<'a>>,
+pub struct Grouping {
+    pub expr: Box<Expr>,
 }
 
-impl<'a> Acceptor for Grouping<'a> {
+impl Acceptor for Grouping {
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
         visitor.visit_grouping_expr(self)
     }

@@ -6,14 +6,14 @@ pub struct Scanner<'a> {
     line: usize,
     start: usize,
     current: usize,
-    tokens: Vec<Token<'a>>,
+    tokens: Vec<Token>,
     keywords: HashMap<&'static str, TokenType>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Token<'a> {
-    r#type: TokenType,
-    lexeme: &'a str, // @todo: Use Range into a source str (to print error information)
+pub struct Token {
+    pub r#type: TokenType,
+    lexeme: String, // @todo: Use Range into a source str (to print error information)
     line: usize,
     literal: Option<LiteralValue>,
 }
@@ -23,35 +23,50 @@ pub enum LiteralValue {
     Str(String),
     Num(f64),
     Nil,
+    Bool(bool),
 }
 
-impl<'a> Token<'a> {
+impl Token {
     pub fn new(
         r#type: TokenType,
-        lexeme: &'a str,
+        lexeme: &str,
         line: usize,
         literal: Option<LiteralValue>,
     ) -> Self {
         Self {
             r#type,
-            lexeme,
+            lexeme: lexeme.to_string(),
             line,
             literal,
         }
     }
 
     pub fn lexeme(&self) -> String {
-        self.lexeme.to_string()
+        self.lexeme.clone()
+    }
+
+    pub fn literal_num(&self) -> Option<f64> {
+        match self.literal {
+            Some(LiteralValue::Num(x)) => Some(x),
+            _ => None,
+        }
+    }
+
+    pub fn literal_str(&self) -> Option<String> {
+        match self.literal {
+            Some(LiteralValue::Str(ref s)) => Some(s.clone()),
+            _ => None,
+        }
     }
 }
 
-impl std::fmt::Display for Token<'_> {
+impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "line {}: {:?} {}", self.line, self.r#type, self.lexeme)
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
     EOF,
 
@@ -131,7 +146,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Vec<Token<'a>> {
+    pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token();

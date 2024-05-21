@@ -48,6 +48,13 @@ impl expr::Visitor for AstPrinter {
             LiteralValue::Num(n) => format!("{}", n),
             LiteralValue::Str(s) => format!("\"{}\"", s),
             LiteralValue::Nil => "nil".to_string(),
+            LiteralValue::Bool(b) => {
+                if b {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
         }
     }
 }
