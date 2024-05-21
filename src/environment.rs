@@ -19,9 +19,17 @@ impl Environment {
 
     #[throws(RuntimeError)]
     pub fn get(&self, name: Token) -> LiteralValue {
-        if self.values.contains_key(&name.lexeme()) {
-            return self.values.get(&name.lexeme()).unwrap().clone();
+        if !self.values.contains_key(&name.lexeme()) {
+            throw!(RuntimeError::UndefinedVariable(name.lexeme()))
         }
-        throw!(RuntimeError::UndefinedVariable(name.lexeme()))
+        self.values.get(&name.lexeme()).unwrap().clone()
+    }
+
+    #[throws(RuntimeError)]
+    pub fn assign(&mut self, name: Token, value: LiteralValue) {
+        if !self.values.contains_key(&name.lexeme()) {
+            throw!(RuntimeError::UndefinedVariable(name.lexeme()))
+        }
+        self.values.entry(name.lexeme()).and_modify(|e| *e = value);
     }
 }

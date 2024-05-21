@@ -12,11 +12,13 @@ pub trait Visitor {
 
     // @todo generate this with a make_visitor_trait! macro?
     #[throws(RuntimeError)]
-    fn visit_binary_expr(&self, expr: &Binary) -> Self::ReturnType;
+    fn visit_assign_expr(&mut self, expr: &Assign) -> Self::ReturnType;
     #[throws(RuntimeError)]
-    fn visit_unary_expr(&self, expr: &Unary) -> Self::ReturnType;
+    fn visit_binary_expr(&mut self, expr: &Binary) -> Self::ReturnType;
     #[throws(RuntimeError)]
-    fn visit_grouping_expr(&self, expr: &Grouping) -> Self::ReturnType;
+    fn visit_unary_expr(&mut self, expr: &Unary) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_grouping_expr(&mut self, expr: &Grouping) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_literal_expr(&self, expr: &Literal) -> Self::ReturnType;
     #[throws(RuntimeError)]
@@ -26,12 +28,13 @@ pub trait Visitor {
 /// Expression visitor acceptor.
 pub trait Acceptor {
     #[throws(RuntimeError)]
-    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType;
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType;
 }
 
 /// Expression AST node.
 #[derive(Debug, Clone)]
 pub enum Expr {
+    Assign(Assign),
     Binary(Binary),
     Unary(Unary),
     Grouping(Grouping),
@@ -67,10 +70,17 @@ pub struct Var {
     pub name: Token,
 }
 
+#[derive(Debug, Clone)]
+pub struct Assign {
+    pub name: Token,
+    pub value: Box<Expr>,
+}
+
 impl Acceptor for Expr {
     #[throws(RuntimeError)]
-    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         match self {
+            Expr::Assign(e) => e.accept(visitor)?,
             Expr::Binary(e) => e.accept(visitor)?,
             Expr::Unary(e) => e.accept(visitor)?,
             Expr::Grouping(e) => e.accept(visitor)?,
@@ -80,37 +90,44 @@ impl Acceptor for Expr {
     }
 }
 
+impl Acceptor for Assign {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_assign_expr(self)?
+    }
+}
+
 impl Acceptor for Binary {
     #[throws(RuntimeError)]
-    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_binary_expr(self)?
     }
 }
 
 impl Acceptor for Unary {
     #[throws(RuntimeError)]
-    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_unary_expr(self)?
     }
 }
 
 impl Acceptor for Grouping {
     #[throws(RuntimeError)]
-    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_grouping_expr(self)?
     }
 }
 
 impl Acceptor for Literal {
     #[throws(RuntimeError)]
-    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_literal_expr(self)?
     }
 }
 
 impl Acceptor for Var {
     #[throws(RuntimeError)]
-    fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_var_expr(self)?
     }
 }

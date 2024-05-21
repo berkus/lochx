@@ -1,6 +1,6 @@
 use {
     crate::{
-        error,
+        error::RuntimeError,
         expr::{self, Expr},
         scanner::{LiteralValue, Token, TokenType},
         stmt::{self, Stmt},
@@ -24,7 +24,9 @@ pub struct Parser {
 ///                | printStmt ;
 /// exprStmt       → expression ";" ;
 /// printStmt      → "print" expression ";" ;
-/// expression     → equality ;
+/// expression     → assignment ;
+/// assignment     → IDENTIFIER "=" assignment
+///                | equality ;
 /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 /// term           → factor ( ( "-" | "+" ) factor )* ;
@@ -58,7 +60,7 @@ impl Parser {
     fn declaration_with_error_handling(&mut self) -> Stmt {
         let decl = self.declaration();
         if let Err(e) = decl {
-            error(999, e.to_string().as_str());
+            crate::error(999, e.to_string().as_str());
             self.synchronize();
             return Stmt::ParseError;
         }
@@ -114,7 +116,28 @@ impl Parser {
 
     #[throws]
     fn expression(&mut self) -> Expr {
-        self.equality()?
+        self.assignment()?
+    }
+
+    #[throws]
+    fn assignment(&mut self) -> Expr {
+        let expr = self.equality()?;
+        if self.match_any(vec![TokenType::Equal]) {
+            let equals = self.previous();
+            let value = self.assignment()?;
+            match expr {
+                Expr::Variable(expr::Var { name, .. }) => {
+                    return Expr::Assign(expr::Assign {
+                        name,
+                        value: Box::new(value),
+                    })
+                }
+                _ => {
+                    throw!(RuntimeError::InvalidAssignmentTarget(equals))
+                }
+            }
+        }
+        expr
     }
 
     #[throws]

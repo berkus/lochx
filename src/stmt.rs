@@ -22,9 +22,9 @@ pub trait Visitor {
     type ReturnType;
 
     #[throws(RuntimeError)]
-    fn visit_print_stmt(&self, stmt: &Expr) -> Self::ReturnType;
+    fn visit_print_stmt(&mut self, stmt: &Expr) -> Self::ReturnType;
     #[throws(RuntimeError)]
-    fn visit_expression_stmt(&self, stmt: &Expr) -> Self::ReturnType;
+    fn visit_expression_stmt(&mut self, stmt: &Expr) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &VarDecl) -> Self::ReturnType;
 }

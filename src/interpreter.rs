@@ -36,7 +36,7 @@ impl Interpreter {
     }
 
     #[throws(RuntimeError)]
-    fn evaluate(&self, expr: &Expr) -> LiteralValue {
+    fn evaluate(&mut self, expr: &Expr) -> LiteralValue {
         expr.accept(self)?
     }
 
@@ -54,14 +54,14 @@ impl stmt::Visitor for Interpreter {
     type ReturnType = ();
 
     #[throws(RuntimeError)]
-    fn visit_print_stmt(&self, stmt: &Expr) -> Self::ReturnType {
+    fn visit_print_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
         let expr = self.evaluate(stmt)?;
         self.out
             .wrapln(liso!(fg = magenta, format!("{}", expr), reset));
     }
 
     #[throws(RuntimeError)]
-    fn visit_expression_stmt(&self, stmt: &Expr) -> Self::ReturnType {
+    fn visit_expression_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
         self.evaluate(stmt)?;
     }
 
@@ -76,7 +76,7 @@ impl expr::Visitor for Interpreter {
     type ReturnType = LiteralValue;
 
     #[throws(RuntimeError)]
-    fn visit_binary_expr(&self, expr: &expr::Binary) -> Self::ReturnType {
+    fn visit_binary_expr(&mut self, expr: &expr::Binary) -> Self::ReturnType {
         let left = self.evaluate(expr.left.as_ref())?;
         let right = self.evaluate(expr.right.as_ref())?;
 
@@ -129,7 +129,7 @@ impl expr::Visitor for Interpreter {
     }
 
     #[throws(RuntimeError)]
-    fn visit_unary_expr(&self, expr: &expr::Unary) -> Self::ReturnType {
+    fn visit_unary_expr(&mut self, expr: &expr::Unary) -> Self::ReturnType {
         let right = self.evaluate(expr.right.as_ref())?;
         match expr.op.r#type {
             TokenType::Minus => match right {
@@ -142,7 +142,7 @@ impl expr::Visitor for Interpreter {
     }
 
     #[throws(RuntimeError)]
-    fn visit_grouping_expr(&self, expr: &expr::Grouping) -> Self::ReturnType {
+    fn visit_grouping_expr(&mut self, expr: &expr::Grouping) -> Self::ReturnType {
         self.evaluate(expr.expr.as_ref())?
     }
 
@@ -154,5 +154,12 @@ impl expr::Visitor for Interpreter {
     #[throws(RuntimeError)]
     fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
         self.env.get(expr.name.clone())?
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Self::ReturnType {
+        let value = self.evaluate(expr.value.as_ref())?;
+        self.env.assign(expr.name.clone(), value.clone())?;
+        value
     }
 }

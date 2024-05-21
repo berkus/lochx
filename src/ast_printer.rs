@@ -17,7 +17,7 @@ impl AstPrinter {
 
     #[allow(dead_code)]
     #[throws(RuntimeError)]
-    pub fn print_expr(&self, e: &Expr) -> String {
+    pub fn print_expr(&mut self, e: &Expr) -> String {
         e.accept(self)?
     }
 
@@ -31,7 +31,7 @@ impl AstPrinter {
     }
 
     #[throws(RuntimeError)]
-    fn parenthesize(&self, name: String, exprs: Vec<Box<Expr>>) -> String {
+    fn parenthesize(&mut self, name: String, exprs: Vec<Box<Expr>>) -> String {
         let mut s = "(".to_string() + &name;
         for expr in exprs {
             s += " ";
@@ -46,7 +46,7 @@ impl stmt::Visitor for AstPrinter {
     type ReturnType = String;
 
     #[throws(RuntimeError)]
-    fn visit_print_stmt(&self, stmt: &Expr) -> Self::ReturnType {
+    fn visit_print_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
         format!(
             "{};",
             self.parenthesize("print".into(), vec![Box::new(stmt.clone())])?
@@ -54,7 +54,7 @@ impl stmt::Visitor for AstPrinter {
     }
 
     #[throws(RuntimeError)]
-    fn visit_expression_stmt(&self, stmt: &Expr) -> Self::ReturnType {
+    fn visit_expression_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
         format!(
             "{};",
             self.parenthesize("".into(), vec![Box::new(stmt.clone())])?
@@ -75,7 +75,7 @@ impl expr::Visitor for AstPrinter {
     type ReturnType = String;
 
     #[throws(RuntimeError)]
-    fn visit_binary_expr(&self, expr: &expr::Binary) -> Self::ReturnType {
+    fn visit_binary_expr(&mut self, expr: &expr::Binary) -> Self::ReturnType {
         self.parenthesize(
             expr.op.lexeme(),
             vec![expr.left.clone(), expr.right.clone()],
@@ -83,12 +83,12 @@ impl expr::Visitor for AstPrinter {
     }
 
     #[throws(RuntimeError)]
-    fn visit_unary_expr(&self, expr: &expr::Unary) -> Self::ReturnType {
+    fn visit_unary_expr(&mut self, expr: &expr::Unary) -> Self::ReturnType {
         self.parenthesize(expr.op.lexeme(), vec![expr.right.clone()])?
     }
 
     #[throws(RuntimeError)]
-    fn visit_grouping_expr(&self, expr: &expr::Grouping) -> Self::ReturnType {
+    fn visit_grouping_expr(&mut self, expr: &expr::Grouping) -> Self::ReturnType {
         self.parenthesize("group".to_string(), vec![expr.expr.clone()])?
     }
 
@@ -111,5 +111,10 @@ impl expr::Visitor for AstPrinter {
     #[throws(RuntimeError)]
     fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
         format!("(var {})", expr.name)
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Self::ReturnType {
+        format!("(assign {} <- {:?})", expr.name, expr.value)
     }
 }
