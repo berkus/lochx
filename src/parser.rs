@@ -49,9 +49,45 @@ impl Parser {
     fn program(&mut self) -> Vec<Stmt> {
         let mut statements = vec![];
         while !self.is_at_end() {
-            statements.push(self.statement()?);
+            statements.push(self.declaration_with_error_handling()?);
         }
         statements
+    }
+
+    #[throws]
+    fn declaration_with_error_handling(&mut self) -> Stmt {
+        let decl = self.declaration();
+        if let Err(e) = decl {
+            error(999, e.to_string().as_str());
+            self.synchronize();
+            return Stmt::ParseError;
+        }
+        decl?
+    }
+
+    #[throws]
+    fn declaration(&mut self) -> Stmt {
+        if self.match_any(vec![TokenType::KwVar]) {
+            return self.var_declaration()?;
+        }
+        self.statement()?
+    }
+
+    #[throws]
+    fn var_declaration(&mut self) -> Stmt {
+        let name = self.consume(TokenType::Identifier, "Expected variable name.")?;
+        let initializer = if self.match_any(vec![TokenType::Equal]) {
+            self.expression()?
+        } else {
+            Expr::Literal(expr::Literal {
+                value: LiteralValue::Nil,
+            })
+        };
+        self.consume(
+            TokenType::Semicolon,
+            "Expected ';' after variable declaration.",
+        )?;
+        Stmt::VarDecl(stmt::VarDecl { name, initializer })
     }
 
     #[throws]
@@ -203,6 +239,11 @@ impl Parser {
                 ),
             });
         }
+        if self.match_any(vec![TokenType::Identifier]) {
+            return Expr::Variable(expr::Var {
+                name: self.previous().clone(),
+            });
+        }
         if self.check(TokenType::LeftParen) {
             self.advance();
             let expr = self.expression()?;
@@ -227,7 +268,7 @@ impl Parser {
 
     // @todo Throw ParseError with location info
     #[throws]
-    fn consume(&mut self, t: TokenType, message: &str) {
+    fn consume(&mut self, t: TokenType, message: &str) -> Token {
         if self.check(t) {
             return self.advance();
         }
@@ -271,11 +312,11 @@ impl Parser {
         self.peek().r#type == t
     }
 
-    fn advance(&mut self) {
+    fn advance(&mut self) -> Token {
         if !self.is_at_end() {
             self.current += 1;
         }
-        self.previous();
+        self.previous()
     }
 
     fn is_at_end(&self) -> bool {

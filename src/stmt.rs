@@ -12,7 +12,7 @@ pub enum Stmt {
 }
 
 #[derive(Debug, Clone)]
-struct VarDecl {
+pub struct VarDecl {
     pub name: Token,
     pub initializer: Expr,
 }

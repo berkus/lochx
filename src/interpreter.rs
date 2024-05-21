@@ -1,5 +1,6 @@
 use {
     crate::{
+        environment::Environment,
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
         scanner::{LiteralValue, TokenType},
@@ -11,11 +12,15 @@ use {
 
 pub struct Interpreter {
     out: OutputOnly,
+    env: Environment,
 }
 
 impl Interpreter {
     pub fn new(out: OutputOnly) -> Self {
-        Self { out }
+        Self {
+            out,
+            env: Environment::default(),
+        }
     }
 
     #[throws(RuntimeError)]
@@ -58,6 +63,12 @@ impl stmt::Visitor for Interpreter {
     #[throws(RuntimeError)]
     fn visit_expression_stmt(&self, stmt: &Expr) -> Self::ReturnType {
         self.evaluate(stmt)?;
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_vardecl_stmt(&mut self, stmt: &stmt::VarDecl) -> Self::ReturnType {
+        let value = self.evaluate(&stmt.initializer)?;
+        self.env.define(stmt.name.lexeme().clone(), value);
     }
 }
 
@@ -138,5 +149,14 @@ impl expr::Visitor for Interpreter {
     #[throws(RuntimeError)]
     fn visit_literal_expr(&self, expr: &expr::Literal) -> Self::ReturnType {
         expr.value.clone()
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
+        let value = self.env.get(expr.name.clone());
+        if value.is_none() {
+            throw!(RuntimeError::UndefinedVariable(expr.name.lexeme().clone()));
+        }
+        value.unwrap()
     }
 }

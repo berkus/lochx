@@ -9,6 +9,7 @@ use {
 };
 
 mod ast_printer;
+mod environment;
 mod error;
 mod expr;
 mod interpreter;

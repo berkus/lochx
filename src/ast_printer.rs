@@ -59,6 +59,15 @@ impl stmt::Visitor for AstPrinter {
             self.parenthesize("".into(), vec![Box::new(stmt.clone())])?
         )
     }
+
+    #[throws(RuntimeError)]
+    fn visit_vardecl_stmt(&mut self, stmt: &stmt::VarDecl) -> Self::ReturnType {
+        format!(
+            "var {} = {};",
+            stmt.name,
+            self.parenthesize("".into(), vec![Box::new(stmt.initializer.clone())])?
+        )
+    }
 }
 
 impl expr::Visitor for AstPrinter {
@@ -96,5 +105,10 @@ impl expr::Visitor for AstPrinter {
                 }
             }
         }
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
+        format!("(var {})", expr.name)
     }
 }
