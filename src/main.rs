@@ -125,11 +125,15 @@ fn run(source: &str) {
             .interpret(ast)
     };
 
-    OUT.get().expect("Must be set at start").wrapln(liso!(
-        fg = green,
-        format!("{:?}", value),
-        fg = none
-    ));
+    if let Err(e) = value {
+        OUT.get().expect("Must be set at start").wrapln(liso!(
+            fg = red,
+            bold,
+            format!("Runtime error: {}", e),
+            fg = none
+        ));
+        return;
+    }
 }
 // @todo use nom_report to report exact parse error locations
 
