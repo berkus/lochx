@@ -1,9 +1,11 @@
 use {
     crate::{
+        error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
         scanner::{LiteralValue, TokenType},
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
+    culpa::{throw, throws},
     liso::{liso, OutputOnly},
 };
 
@@ -16,18 +18,21 @@ impl Interpreter {
         Self { out }
     }
 
-    pub fn interpret(&self, statements: Vec<Stmt>) {
+    #[throws(RuntimeError)]
+    pub fn interpret(&mut self, statements: Vec<Stmt>) {
         for stmt in statements {
-            self.execute(&stmt);
+            self.execute(&stmt)?;
         }
     }
 
-    fn execute(&self, stmt: &Stmt) {
-        stmt.accept(self);
+    #[throws(RuntimeError)]
+    fn execute(&mut self, stmt: &Stmt) {
+        stmt.accept(self)?;
     }
 
+    #[throws(RuntimeError)]
     fn evaluate(&self, expr: &Expr) -> LiteralValue {
-        expr.accept(self)
+        expr.accept(self)?
     }
 
     /// nil and false are falsy, everything else is truthy
@@ -43,23 +48,26 @@ impl Interpreter {
 impl stmt::Visitor for Interpreter {
     type ReturnType = ();
 
+    #[throws(RuntimeError)]
     fn visit_print_stmt(&self, stmt: &Expr) -> Self::ReturnType {
-        let expr = self.evaluate(stmt);
+        let expr = self.evaluate(stmt)?;
         self.out
             .wrapln(liso!(fg = magenta, format!("{:?}", expr), reset)); // @todo stringify
     }
 
+    #[throws(RuntimeError)]
     fn visit_expression_stmt(&self, stmt: &Expr) -> Self::ReturnType {
-        self.evaluate(stmt);
+        self.evaluate(stmt)?;
     }
 }
 
 impl expr::Visitor for Interpreter {
     type ReturnType = LiteralValue;
 
+    #[throws(RuntimeError)]
     fn visit_binary_expr(&self, expr: &expr::Binary) -> Self::ReturnType {
-        let left = self.evaluate(expr.left.as_ref());
-        let right = self.evaluate(expr.right.as_ref());
+        let left = self.evaluate(expr.left.as_ref())?;
+        let right = self.evaluate(expr.right.as_ref())?;
 
         match expr.op.r#type {
             TokenType::Plus => match (left, right) {
@@ -109,8 +117,9 @@ impl expr::Visitor for Interpreter {
         }
     }
 
+    #[throws(RuntimeError)]
     fn visit_unary_expr(&self, expr: &expr::Unary) -> Self::ReturnType {
-        let right = self.evaluate(expr.right.as_ref());
+        let right = self.evaluate(expr.right.as_ref())?;
         match expr.op.r#type {
             TokenType::Minus => match right {
                 LiteralValue::Num(n) => LiteralValue::Num(-n),
@@ -121,10 +130,12 @@ impl expr::Visitor for Interpreter {
         }
     }
 
+    #[throws(RuntimeError)]
     fn visit_grouping_expr(&self, expr: &expr::Grouping) -> Self::ReturnType {
-        self.evaluate(expr.expr.as_ref())
+        self.evaluate(expr.expr.as_ref())?
     }
 
+    #[throws(RuntimeError)]
     fn visit_literal_expr(&self, expr: &expr::Literal) -> Self::ReturnType {
         expr.value.clone()
     }

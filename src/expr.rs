@@ -1,19 +1,31 @@
-use crate::scanner::{LiteralValue, Token};
+use {
+    crate::{
+        error::RuntimeError,
+        scanner::{LiteralValue, Token},
+    },
+    culpa::throws,
+};
 
 /// Expressions visitor.
 pub trait Visitor {
     type ReturnType;
 
     // @todo generate this with a make_visitor_trait! macro?
+    #[throws(RuntimeError)]
     fn visit_binary_expr(&self, expr: &Binary) -> Self::ReturnType;
+    #[throws(RuntimeError)]
     fn visit_unary_expr(&self, expr: &Unary) -> Self::ReturnType;
+    #[throws(RuntimeError)]
     fn visit_grouping_expr(&self, expr: &Grouping) -> Self::ReturnType;
+    #[throws(RuntimeError)]
     fn visit_literal_expr(&self, expr: &Literal) -> Self::ReturnType;
+    #[throws(RuntimeError)]
     fn visit_var_expr(&self, expr: &Var) -> Self::ReturnType;
 }
 
 /// Expression visitor acceptor.
 pub trait Acceptor {
+    #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType;
 }
 
@@ -56,43 +68,49 @@ pub struct Var {
 }
 
 impl Acceptor for Expr {
+    #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
         match self {
-            Expr::Binary(e) => e.accept(visitor),
-            Expr::Unary(e) => e.accept(visitor),
-            Expr::Grouping(e) => e.accept(visitor),
-            Expr::Literal(e) => e.accept(visitor),
-            Expr::Variable(e) => e.accept(visitor),
+            Expr::Binary(e) => e.accept(visitor)?,
+            Expr::Unary(e) => e.accept(visitor)?,
+            Expr::Grouping(e) => e.accept(visitor)?,
+            Expr::Literal(e) => e.accept(visitor)?,
+            Expr::Variable(e) => e.accept(visitor)?,
         }
     }
 }
 
 impl Acceptor for Binary {
+    #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
-        visitor.visit_binary_expr(self)
+        visitor.visit_binary_expr(self)?
     }
 }
 
 impl Acceptor for Unary {
+    #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
-        visitor.visit_unary_expr(self)
+        visitor.visit_unary_expr(self)?
     }
 }
 
 impl Acceptor for Grouping {
+    #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
-        visitor.visit_grouping_expr(self)
+        visitor.visit_grouping_expr(self)?
     }
 }
 
 impl Acceptor for Literal {
+    #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
-        visitor.visit_literal_expr(self)
+        visitor.visit_literal_expr(self)?
     }
 }
 
 impl Acceptor for Var {
+    #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &V) -> V::ReturnType {
-        visitor.visit_var_expr(self)
+        visitor.visit_var_expr(self)?
     }
 }

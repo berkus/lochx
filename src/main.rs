@@ -5,10 +5,11 @@ use {
     culpa::{throw, throws},
     interpreter::Interpreter,
     liso::{liso, OutputOnly, Response},
-    std::sync::OnceLock,
+    std::sync::{Mutex, OnceLock},
 };
 
 mod ast_printer;
+mod error;
 mod expr;
 mod interpreter;
 mod parser;
@@ -45,7 +46,12 @@ fn main() {
 
     let io = liso::InputOutput::new();
     let _ = OUT.set(io.clone_output());
-    let _ = INTERPRETER.set(Interpreter::new(io.clone_output()));
+    let _ = unsafe {
+        INTERPRETER
+            .lock()
+            .unwrap()
+            .set(Interpreter::new(io.clone_output()))
+    };
 
     if args.script.len() == 1 {
         run_script(&args.script[0])?;
@@ -55,7 +61,7 @@ fn main() {
 }
 
 static OUT: OnceLock<OutputOnly> = OnceLock::new();
-static INTERPRETER: OnceLock<Interpreter> = OnceLock::new();
+static mut INTERPRETER: Mutex<OnceLock<Interpreter>> = Mutex::new(OnceLock::new());
 
 #[throws]
 fn run_repl(mut io: liso::InputOutput) {
@@ -101,16 +107,22 @@ fn run(source: &str) {
 
     let ast = ast.unwrap();
 
-    let printer = AstPrinter::new();
+    let mut printer = AstPrinter::new();
 
     OUT.get().expect("Must be set at start").wrapln(liso!(
         fg = blue,
-        &printer.print_stmt(ast.clone()),
+        &printer.print_stmt(ast.clone())?,
         fg = none
     ));
 
-    let interpreter = INTERPRETER.get().expect("Must be set at start");
-    let value = interpreter.interpret(ast);
+    let value = unsafe {
+        INTERPRETER
+            .lock()
+            .unwrap()
+            .get_mut()
+            .expect("Must be set at start")
+            .interpret(ast)
+    };
 
     OUT.get().expect("Must be set at start").wrapln(liso!(
         fg = green,

@@ -1,8 +1,9 @@
 use {
     crate::{
+        error,
         expr::{self, Expr},
         scanner::{LiteralValue, Token, TokenType},
-        stmt::Stmt,
+        stmt::{self, Stmt},
     },
     anyhow::{anyhow, Error},
     culpa::{throw, throws},
