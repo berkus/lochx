@@ -94,7 +94,7 @@ impl expr::Visitor for AstPrinter {
     #[throws(RuntimeError)]
     fn visit_literal_expr(&self, expr: &expr::Literal) -> Self::ReturnType {
         match expr.value.clone() {
-            LiteralValue::Num(n) => format!("{}", n),
+            LiteralValue::Num(n) => format!("{}", n).trim_end_matches(".0").to_string(),
             LiteralValue::Str(s) => format!("\"{}\"", s),
             LiteralValue::Nil => "nil".to_string(),
             LiteralValue::Bool(b) => {

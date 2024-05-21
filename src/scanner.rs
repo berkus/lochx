@@ -26,6 +26,21 @@ pub enum LiteralValue {
     Bool(bool),
 }
 
+impl std::fmt::Display for LiteralValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                LiteralValue::Str(s) => s.clone(),
+                LiteralValue::Num(n) => n.to_string().trim_end_matches(".0").to_string(),
+                LiteralValue::Nil => "nil".to_string(),
+                LiteralValue::Bool(b) => b.to_string(),
+            }
+        )
+    }
+}
+
 impl Token {
     pub fn new(
         r#type: TokenType,

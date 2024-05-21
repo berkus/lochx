@@ -57,7 +57,7 @@ impl stmt::Visitor for Interpreter {
     fn visit_print_stmt(&self, stmt: &Expr) -> Self::ReturnType {
         let expr = self.evaluate(stmt)?;
         self.out
-            .wrapln(liso!(fg = magenta, format!("{:?}", expr), reset)); // @todo stringify
+            .wrapln(liso!(fg = magenta, format!("{}", expr), reset));
     }
 
     #[throws(RuntimeError)]
