@@ -69,6 +69,11 @@ impl stmt::Visitor for AstPrinter {
             self.parenthesize("".into(), vec![Box::new(stmt.initializer.clone())])?
         )
     }
+
+    #[throws(RuntimeError)]
+    fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType {
+        format!("{{ {} }};", self.print_stmt(stmts.to_vec())?)
+    }
 }
 
 impl expr::Visitor for AstPrinter {

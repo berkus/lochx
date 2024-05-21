@@ -9,6 +9,7 @@ pub enum Stmt {
     Print(Expr),
     Expression(Expr),
     VarDecl(VarDecl),
+    Block(Vec<Stmt>),
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +28,8 @@ pub trait Visitor {
     fn visit_expression_stmt(&mut self, stmt: &Expr) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &VarDecl) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType;
 }
 
 /// Statement visitor acceptor.
@@ -42,6 +45,7 @@ impl Acceptor for Stmt {
             Stmt::Print(e) => visitor.visit_print_stmt(e)?,
             Stmt::Expression(e) => visitor.visit_expression_stmt(e)?,
             Stmt::VarDecl(d) => visitor.visit_vardecl_stmt(d)?,
+            Stmt::Block(b) => visitor.visit_block_stmt(b)?,
             Stmt::ParseError => todo!(),
         }
     }

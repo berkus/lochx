@@ -38,6 +38,19 @@ impl Interpreter {
     }
 
     #[throws(RuntimeError)]
+    fn execute_block(&mut self, stmts: Vec<Stmt>, env: Rc<RefCell<Environment>>) {
+        let previous = self.env.clone();
+        self.env = env;
+        for stmt in stmts {
+            if let Err(_e) = self.execute(&stmt) {
+                // @todo report `e`
+                break;
+            }
+        }
+        self.env = previous;
+    }
+
+    #[throws(RuntimeError)]
     fn evaluate(&mut self, expr: &Expr) -> LiteralValue {
         expr.accept(self)?
     }
@@ -73,6 +86,11 @@ impl stmt::Visitor for Interpreter {
         self.env
             .borrow_mut()
             .define(stmt.name.lexeme().clone(), value);
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType {
+        self.execute_block(stmts.to_vec(), Environment::nested(self.env.clone()))?;
     }
 }
 

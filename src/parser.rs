@@ -21,9 +21,11 @@ pub struct Parser {
 ///                | statement ;
 /// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 /// statement      → exprStmt
-///                | printStmt ;
+///                | printStmt
+///                | block ;
 /// exprStmt       → expression ";" ;
 /// printStmt      → "print" expression ";" ;
+/// block          → "{" declaration* "}" ;
 /// expression     → assignment ;
 /// assignment     → IDENTIFIER "=" assignment
 ///                | equality ;
@@ -97,6 +99,9 @@ impl Parser {
         if self.match_any(vec![TokenType::KwPrint]) {
             return self.print_stmt()?;
         }
+        if self.match_any(vec![TokenType::LeftBrace]) {
+            return self.block_stmt()?;
+        }
         self.expr_stmt()?
     }
 
@@ -112,6 +117,23 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
         Stmt::Expression(expr)
+    }
+
+    // Wrap block into the block statement.
+    #[throws]
+    fn block_stmt(&mut self) -> Stmt {
+        Stmt::Block(self.block()?)
+    }
+
+    // Shared block parser, will be reused for function bodies.
+    #[throws]
+    fn block(&mut self) -> Vec<Stmt> {
+        let mut stmts = vec![];
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            stmts.push(self.declaration_with_error_handling()?);
+        }
+        self.consume(TokenType::RightBrace, "Expected '}' after block.")?;
+        stmts
     }
 
     #[throws]
