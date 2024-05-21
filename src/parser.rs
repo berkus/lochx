@@ -196,6 +196,31 @@ impl Parser {
         ));
     }
 
+    /// Synchronize parser stream to the next non-error token.
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            if self.previous().r#type == TokenType::Semicolon {
+                return;
+            }
+
+            match self.peek().r#type {
+                TokenType::KwClass
+                | TokenType::KwFun
+                | TokenType::KwFor
+                | TokenType::KwIf
+                | TokenType::KwPrint
+                | TokenType::KwReturn
+                | TokenType::KwVar
+                | TokenType::KwWhile => return,
+                _ => {}
+            }
+
+            self.advance();
+        }
+    }
+
     fn check(&self, t: TokenType) -> bool {
         if self.is_at_end() {
             return false;
