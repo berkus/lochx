@@ -6,20 +6,22 @@ use {
         scanner::{LiteralValue, TokenType},
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
+    core::cell::RefCell,
     culpa::throws,
     liso::{liso, OutputOnly},
+    std::rc::Rc,
 };
 
 pub struct Interpreter {
     out: OutputOnly,
-    env: Environment,
+    env: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
     pub fn new(out: OutputOnly) -> Self {
         Self {
             out,
-            env: Environment::default(),
+            env: Environment::new(),
         }
     }
 
@@ -68,7 +70,9 @@ impl stmt::Visitor for Interpreter {
     #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &stmt::VarDecl) -> Self::ReturnType {
         let value = self.evaluate(&stmt.initializer)?;
-        self.env.define(stmt.name.lexeme().clone(), value);
+        self.env
+            .borrow_mut()
+            .define(stmt.name.lexeme().clone(), value);
     }
 }
 
@@ -153,13 +157,15 @@ impl expr::Visitor for Interpreter {
 
     #[throws(RuntimeError)]
     fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
-        self.env.get(expr.name.clone())?
+        self.env.borrow().get(expr.name.clone())?
     }
 
     #[throws(RuntimeError)]
     fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Self::ReturnType {
         let value = self.evaluate(expr.value.as_ref())?;
-        self.env.assign(expr.name.clone(), value.clone())?;
+        self.env
+            .borrow_mut()
+            .assign(expr.name.clone(), value.clone())?;
         value
     }
 }
