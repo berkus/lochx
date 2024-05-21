@@ -84,11 +84,11 @@ impl Parser {
         while self.match_any(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
             let op = self.previous();
             let right = self.comparison()?;
-            expr = Expr::Binary(Box::new(expr::Binary {
+            expr = Expr::Binary(expr::Binary {
                 op: op.clone(),
                 left: Box::new(expr),
                 right: Box::new(right),
-            }));
+            });
         }
 
         expr
@@ -106,11 +106,11 @@ impl Parser {
         ]) {
             let op = self.previous();
             let right = self.term()?;
-            expr = Expr::Binary(Box::new(expr::Binary {
+            expr = Expr::Binary(expr::Binary {
                 op: op.clone(),
                 left: Box::new(expr),
                 right: Box::new(right),
-            }));
+            });
         }
 
         expr
@@ -123,11 +123,11 @@ impl Parser {
         while self.match_any(vec![TokenType::Minus, TokenType::Plus]) {
             let op = self.previous();
             let right = self.factor()?;
-            expr = Expr::Binary(Box::new(expr::Binary {
+            expr = Expr::Binary(expr::Binary {
                 op: op.clone(),
                 left: Box::new(expr),
                 right: Box::new(right),
-            }));
+            });
         }
 
         expr
@@ -140,11 +140,11 @@ impl Parser {
         while self.match_any(vec![TokenType::Slash, TokenType::Star]) {
             let op = self.previous();
             let right = self.unary()?;
-            expr = Expr::Binary(Box::new(expr::Binary {
+            expr = Expr::Binary(expr::Binary {
                 op: op.clone(),
                 left: Box::new(expr),
                 right: Box::new(right),
-            }));
+            });
         }
 
         expr
@@ -155,10 +155,10 @@ impl Parser {
         if self.match_any(vec![TokenType::Bang, TokenType::Minus]) {
             let op = self.previous();
             let right = self.unary()?;
-            return Expr::Unary(Box::new(expr::Unary {
+            return Expr::Unary(expr::Unary {
                 op: op.clone(),
                 right: Box::new(right),
-            }));
+            });
         }
 
         self.primary()?
@@ -167,45 +167,45 @@ impl Parser {
     #[throws]
     fn primary(&mut self) -> Expr {
         if self.match_any(vec![TokenType::KwFalse]) {
-            return Expr::Literal(Box::new(expr::Literal {
+            return Expr::Literal(expr::Literal {
                 value: LiteralValue::Bool(false),
-            }));
+            });
         }
         if self.match_any(vec![TokenType::KwTrue]) {
-            return Expr::Literal(Box::new(expr::Literal {
+            return Expr::Literal(expr::Literal {
                 value: LiteralValue::Bool(true),
-            }));
+            });
         }
         if self.match_any(vec![TokenType::KwNil]) {
-            return Expr::Literal(Box::new(expr::Literal {
+            return Expr::Literal(expr::Literal {
                 value: LiteralValue::Nil,
-            }));
+            });
         }
         if self.match_any(vec![TokenType::Number]) {
-            return Expr::Literal(Box::new(expr::Literal {
+            return Expr::Literal(expr::Literal {
                 value: LiteralValue::Num(
                     self.previous()
                         .literal_num()
                         .expect("We got a numeric literal"),
                 ),
-            }));
+            });
         }
         if self.match_any(vec![TokenType::String]) {
-            return Expr::Literal(Box::new(expr::Literal {
+            return Expr::Literal(expr::Literal {
                 value: LiteralValue::Str(
                     self.previous()
                         .literal_str()
                         .expect("We got a string literal"),
                 ),
-            }));
+            });
         }
         if self.check(TokenType::LeftParen) {
             self.advance();
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expected ')' after expression.")?;
-            return Expr::Grouping(Box::new(expr::Grouping {
+            return Expr::Grouping(expr::Grouping {
                 expr: Box::new(expr),
-            }));
+            });
         }
         // @todo Throw ParseError with location info
         throw!(anyhow!("Expected expression"));

@@ -19,10 +19,10 @@ pub trait Acceptor {
 /// Expression AST node.
 #[derive(Debug, Clone)]
 pub enum Expr {
-    Binary(Box<Binary>),
-    Unary(Box<Unary>),
-    Grouping(Box<Grouping>),
-    Literal(Box<Literal>),
+    Binary(Binary),
+    Unary(Unary),
+    Grouping(Grouping),
+    Literal(Literal),
 }
 
 impl Acceptor for Expr {
