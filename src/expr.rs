@@ -1,8 +1,5 @@
 use {
-    crate::{
-        error::RuntimeError,
-        scanner::{LiteralValue, Token},
-    },
+    crate::{error::RuntimeError, literal::LiteralValue, scanner::Token},
     culpa::throws,
 };
 

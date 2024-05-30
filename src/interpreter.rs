@@ -3,7 +3,8 @@ use {
         environment::Environment,
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
-        scanner::{LiteralValue, TokenType},
+        literal::LiteralValue,
+        scanner::TokenType,
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
     core::cell::RefCell,
@@ -54,15 +55,6 @@ impl Interpreter {
     fn evaluate(&mut self, expr: &Expr) -> LiteralValue {
         expr.accept(self)?
     }
-
-    /// nil and false are falsy, everything else is truthy
-    fn is_truthy(&self, value: &LiteralValue) -> bool {
-        match value {
-            LiteralValue::Nil => false,
-            LiteralValue::Bool(b) => *b,
-            _ => true,
-        }
-    }
 }
 
 impl stmt::Visitor for Interpreter {
@@ -96,7 +88,7 @@ impl stmt::Visitor for Interpreter {
     #[throws(RuntimeError)]
     fn visit_if_stmt(&mut self, stmt: &stmt::IfStmt) -> Self::ReturnType {
         let expr = self.evaluate(&stmt.condition)?;
-        if self.is_truthy(&expr) {
+        if expr.is_truthy() {
             self.execute(stmt.then_branch.as_ref())?;
         } else if let Some(else_branch) = &stmt.else_branch {
             self.execute(else_branch)?;
@@ -168,7 +160,7 @@ impl expr::Visitor for Interpreter {
                 LiteralValue::Num(n) => LiteralValue::Num(-n),
                 _ => todo!(),
             },
-            TokenType::Bang => LiteralValue::Bool(!self.is_truthy(&right)),
+            TokenType::Bang => LiteralValue::Bool(!right.is_truthy()),
             _ => unreachable!(),
         }
     }
@@ -202,11 +194,11 @@ impl expr::Visitor for Interpreter {
         let left = self.evaluate(expr.left.as_ref())?;
 
         if expr.op.r#type == TokenType::KwOr {
-            if self.is_truthy(&left) {
+            if left.is_truthy() {
                 return left;
             }
         } else {
-            if !self.is_truthy(&left) {
+            if !left.is_truthy() {
                 return left;
             }
         }

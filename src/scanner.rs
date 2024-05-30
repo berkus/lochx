@@ -1,4 +1,8 @@
-use {crate::error, maplit::hashmap, std::collections::HashMap};
+use {
+    crate::{error, literal::LiteralValue},
+    maplit::hashmap,
+    std::collections::HashMap,
+};
 
 /// Current scanner state for iterating over the source input.
 pub struct Scanner<'a> {
@@ -8,29 +12,6 @@ pub struct Scanner<'a> {
     current: usize,
     tokens: Vec<Token>,
     keywords: HashMap<&'static str, TokenType>,
-}
-
-#[derive(Debug, Clone)]
-pub enum LiteralValue {
-    Str(String),
-    Num(f64),
-    Nil,
-    Bool(bool),
-}
-
-impl std::fmt::Display for LiteralValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                LiteralValue::Str(s) => s.clone(),
-                LiteralValue::Num(n) => n.to_string().trim_end_matches(".0").to_string(),
-                LiteralValue::Nil => "nil".to_string(),
-                LiteralValue::Bool(b) => b.to_string(),
-            }
-        )
-    }
 }
 
 #[derive(Debug, Clone)]

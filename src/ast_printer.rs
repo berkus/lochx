@@ -2,7 +2,7 @@ use {
     crate::{
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
-        scanner::LiteralValue,
+        literal::LiteralValue,
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
     culpa::throws,

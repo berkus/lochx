@@ -13,6 +13,7 @@ mod environment;
 mod error;
 mod expr;
 mod interpreter;
+mod literal;
 mod parser;
 mod scanner;
 mod stmt;

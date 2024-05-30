@@ -2,7 +2,8 @@ use {
     crate::{
         error::RuntimeError,
         expr::{self, Expr},
-        scanner::{LiteralValue, Token, TokenType},
+        literal::LiteralValue,
+        scanner::{Token, TokenType},
         stmt::{self, IfStmt, Stmt},
     },
     anyhow::{anyhow, Error},

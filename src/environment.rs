@@ -1,8 +1,5 @@
 use {
-    crate::{
-        error::RuntimeError,
-        scanner::{LiteralValue, Token},
-    },
+    crate::{error::RuntimeError, literal::LiteralValue, scanner::Token},
     core::cell::RefCell,
     culpa::{throw, throws},
     std::{collections::HashMap, rc::Rc},
