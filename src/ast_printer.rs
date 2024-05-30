@@ -62,6 +62,18 @@ impl stmt::Visitor for AstPrinter {
     }
 
     #[throws(RuntimeError)]
+    fn visit_if_stmt(&mut self, stmt: &stmt::IfStmt) -> Self::ReturnType {
+        format!(
+            "(if {} {} else {})",
+            stmt.condition.accept(self)?,
+            stmt.then_branch.accept(self)?,
+            stmt.else_branch
+                .clone()
+                .map_or(Ok("None".into()), |b| b.accept(self))?
+        )
+    }
+
+    #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &stmt::VarDecl) -> Self::ReturnType {
         format!(
             "var {} = {};",

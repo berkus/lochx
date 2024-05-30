@@ -3,7 +3,7 @@ use {
         error::RuntimeError,
         expr::{self, Expr},
         scanner::{LiteralValue, Token, TokenType},
-        stmt::{self, Stmt},
+        stmt::{self, IfStmt, Stmt},
     },
     anyhow::{anyhow, Error},
     culpa::{throw, throws},
@@ -21,9 +21,12 @@ pub struct Parser {
 ///                | statement ;
 /// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 /// statement      → exprStmt
+///                | ifStmt
 ///                | printStmt
 ///                | block ;
 /// exprStmt       → expression ";" ;
+/// ifStmt         → "if" "(" expression ")" statement
+///                  ("else" statement )? ;
 /// printStmt      → "print" expression ";" ;
 /// block          → "{" declaration* "}" ;
 /// expression     → assignment ;
@@ -96,6 +99,9 @@ impl Parser {
 
     #[throws]
     fn statement(&mut self) -> Stmt {
+        if self.match_any(vec![TokenType::KwIf]) {
+            return self.if_stmt()?;
+        }
         if self.match_any(vec![TokenType::KwPrint]) {
             return self.print_stmt()?;
         }
@@ -103,6 +109,24 @@ impl Parser {
             return self.block_stmt()?;
         }
         self.expr_stmt()?
+    }
+
+    #[throws]
+    fn if_stmt(&mut self) -> Stmt {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'if'.")?;
+        let expr = self.expression()?;
+        self.consume(TokenType::RightParen, "Expected ')' after 'if' condition.")?;
+        let then_branch = Box::new(self.statement()?);
+        let else_branch = if self.match_any(vec![TokenType::KwElse]) {
+            Some(Box::new(self.statement()?))
+        } else {
+            None
+        };
+        Stmt::If(IfStmt {
+            condition: expr,
+            then_branch,
+            else_branch,
+        })
     }
 
     #[throws]

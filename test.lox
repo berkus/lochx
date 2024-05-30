@@ -10,6 +10,10 @@ var c = "global c";
   var b = "outer b";
   {
     var a = "inner a";
+    if (a == "inner a") { print "boo"; } else { print "hoo"; }
+    if (b == "outer b") { print "again"; }
+    if (false) { print "don't care"; } else { print "do care"; }
+    if (false) { print "don't care"; } else { var c = "inner c"; print a; print b; print c; }
     print a;
     print b;
     print c;

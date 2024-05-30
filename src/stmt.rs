@@ -9,6 +9,7 @@ pub enum Stmt {
     Print(Expr),
     Expression(Expr),
     VarDecl(VarDecl),
+    If(IfStmt),
     Block(Vec<Stmt>),
 }
 
@@ -16,6 +17,13 @@ pub enum Stmt {
 pub struct VarDecl {
     pub name: Token,
     pub initializer: Expr,
+}
+
+#[derive(Debug, Clone)]
+pub struct IfStmt {
+    pub condition: Expr,
+    pub then_branch: Box<Stmt>,
+    pub else_branch: Option<Box<Stmt>>,
 }
 
 /// Statements visitor.
@@ -26,6 +34,8 @@ pub trait Visitor {
     fn visit_print_stmt(&mut self, stmt: &Expr) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_expression_stmt(&mut self, stmt: &Expr) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_if_stmt(&mut self, stmt: &IfStmt) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &VarDecl) -> Self::ReturnType;
     #[throws(RuntimeError)]
@@ -44,6 +54,7 @@ impl Acceptor for Stmt {
         match self {
             Stmt::Print(e) => visitor.visit_print_stmt(e)?,
             Stmt::Expression(e) => visitor.visit_expression_stmt(e)?,
+            Stmt::If(i) => visitor.visit_if_stmt(i)?,
             Stmt::VarDecl(d) => visitor.visit_vardecl_stmt(d)?,
             Stmt::Block(b) => visitor.visit_block_stmt(b)?,
             Stmt::ParseError => todo!(),

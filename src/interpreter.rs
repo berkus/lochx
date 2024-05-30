@@ -92,6 +92,16 @@ impl stmt::Visitor for Interpreter {
     fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType {
         self.execute_block(stmts.to_vec(), Environment::nested(self.env.clone()))?;
     }
+
+    #[throws(RuntimeError)]
+    fn visit_if_stmt(&mut self, stmt: &stmt::IfStmt) -> Self::ReturnType {
+        let expr = self.evaluate(&stmt.condition)?;
+        if self.is_truthy(&expr) {
+            self.execute(stmt.then_branch.as_ref())?;
+        } else if let Some(else_branch) = &stmt.else_branch {
+            self.execute(else_branch)?;
+        }
+    }
 }
 
 impl expr::Visitor for Interpreter {
