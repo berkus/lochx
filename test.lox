@@ -30,3 +30,5 @@ print "hi" or 2;
 print nil or "yes";
 print 2 and "hi";
 print nil and true;
+
+while (false) { true; }

@@ -4,7 +4,7 @@ use {
         expr::{self, Expr},
         literal::LiteralValue,
         scanner::{Token, TokenType},
-        stmt::{self, IfStmt, Stmt},
+        stmt::{self, Stmt},
     },
     anyhow::{anyhow, Error},
     culpa::{throw, throws},
@@ -24,11 +24,13 @@ pub struct Parser {
 /// statement      → exprStmt
 ///                | ifStmt
 ///                | printStmt
+///                | whileStmt
 ///                | block ;
 /// exprStmt       → expression ";" ;
 /// ifStmt         → "if" "(" expression ")" statement
 ///                  ("else" statement )? ;
 /// printStmt      → "print" expression ";" ;
+/// whileStmt      → "while" "(" expression ")" statement ;
 /// block          → "{" declaration* "}" ;
 /// expression     → assignment ;
 /// assignment     → IDENTIFIER "=" assignment
@@ -108,6 +110,9 @@ impl Parser {
         if self.match_any(vec![TokenType::KwPrint]) {
             return self.print_stmt()?;
         }
+        if self.match_any(vec![TokenType::KwWhile]) {
+            return self.while_stmt()?;
+        }
         if self.match_any(vec![TokenType::LeftBrace]) {
             return self.block_stmt()?;
         }
@@ -125,7 +130,7 @@ impl Parser {
         } else {
             None
         };
-        Stmt::If(IfStmt {
+        Stmt::If(stmt::IfStmt {
             condition: expr,
             then_branch,
             else_branch,
@@ -137,6 +142,18 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
         Stmt::Print(expr)
+    }
+
+    #[throws]
+    fn while_stmt(&mut self) -> Stmt {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'while'.")?;
+        let condition = self.expression()?;
+        self.consume(
+            TokenType::RightParen,
+            "Expected ')' after 'while' condition.",
+        )?;
+        let body = Box::new(self.statement()?);
+        Stmt::While(stmt::WhileStmt { condition, body })
     }
 
     #[throws]

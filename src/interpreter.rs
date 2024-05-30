@@ -94,6 +94,13 @@ impl stmt::Visitor for Interpreter {
             self.execute(else_branch)?;
         }
     }
+
+    #[throws(RuntimeError)]
+    fn visit_while_stmt(&mut self, stmt: &stmt::WhileStmt) -> Self::ReturnType {
+        while self.evaluate(&stmt.condition)?.is_truthy() {
+            self.execute(stmt.body.as_ref())?;
+        }
+    }
 }
 
 impl expr::Visitor for Interpreter {

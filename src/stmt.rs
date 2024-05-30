@@ -10,6 +10,7 @@ pub enum Stmt {
     Expression(Expr),
     VarDecl(VarDecl),
     If(IfStmt),
+    While(WhileStmt),
     Block(Vec<Stmt>),
 }
 
@@ -26,6 +27,12 @@ pub struct IfStmt {
     pub else_branch: Option<Box<Stmt>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct WhileStmt {
+    pub condition: Expr,
+    pub body: Box<Stmt>,
+}
+
 /// Statements visitor.
 pub trait Visitor {
     type ReturnType;
@@ -36,6 +43,8 @@ pub trait Visitor {
     fn visit_expression_stmt(&mut self, stmt: &Expr) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_if_stmt(&mut self, stmt: &IfStmt) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_while_stmt(&mut self, stmt: &WhileStmt) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &VarDecl) -> Self::ReturnType;
     #[throws(RuntimeError)]
@@ -55,6 +64,7 @@ impl Acceptor for Stmt {
             Stmt::Print(e) => visitor.visit_print_stmt(e)?,
             Stmt::Expression(e) => visitor.visit_expression_stmt(e)?,
             Stmt::If(i) => visitor.visit_if_stmt(i)?,
+            Stmt::While(w) => visitor.visit_while_stmt(w)?,
             Stmt::VarDecl(d) => visitor.visit_vardecl_stmt(d)?,
             Stmt::Block(b) => visitor.visit_block_stmt(b)?,
             Stmt::ParseError => todo!(),

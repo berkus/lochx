@@ -86,6 +86,15 @@ impl stmt::Visitor for AstPrinter {
     fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType {
         format!("{{ {} }};", self.print_stmt(stmts.to_vec())?)
     }
+
+    #[throws(RuntimeError)]
+    fn visit_while_stmt(&mut self, stmt: &stmt::WhileStmt) -> Self::ReturnType {
+        format!(
+            "(while {} {})",
+            stmt.condition.accept(self)?,
+            stmt.body.accept(self)?
+        )
+    }
 }
 
 impl expr::Visitor for AstPrinter {
