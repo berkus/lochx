@@ -16,6 +16,8 @@ pub trait Visitor {
     #[throws(RuntimeError)]
     fn visit_binary_expr(&mut self, expr: &Binary) -> Self::ReturnType;
     #[throws(RuntimeError)]
+    fn visit_logical_expr(&mut self, expr: &Logical) -> Self::ReturnType;
+    #[throws(RuntimeError)]
     fn visit_unary_expr(&mut self, expr: &Unary) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_grouping_expr(&mut self, expr: &Grouping) -> Self::ReturnType;
@@ -36,6 +38,7 @@ pub trait Acceptor {
 pub enum Expr {
     Assign(Assign),
     Binary(Binary),
+    Logical(Logical),
     Unary(Unary),
     Grouping(Grouping),
     Literal(Literal),
@@ -50,6 +53,13 @@ pub struct Unary {
 
 #[derive(Debug, Clone)]
 pub struct Binary {
+    pub left: Box<Expr>,
+    pub op: Token,
+    pub right: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Logical {
     pub left: Box<Expr>,
     pub op: Token,
     pub right: Box<Expr>,
@@ -82,6 +92,7 @@ impl Acceptor for Expr {
         match self {
             Expr::Assign(e) => e.accept(visitor)?,
             Expr::Binary(e) => e.accept(visitor)?,
+            Expr::Logical(e) => e.accept(visitor)?,
             Expr::Unary(e) => e.accept(visitor)?,
             Expr::Grouping(e) => e.accept(visitor)?,
             Expr::Literal(e) => e.accept(visitor)?,
@@ -101,6 +112,13 @@ impl Acceptor for Binary {
     #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_binary_expr(self)?
+    }
+}
+
+impl Acceptor for Logical {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_logical_expr(self)?
     }
 }
 

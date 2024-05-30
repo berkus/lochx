@@ -196,4 +196,21 @@ impl expr::Visitor for Interpreter {
             .assign(expr.name.clone(), value.clone())?;
         value
     }
+
+    #[throws(RuntimeError)]
+    fn visit_logical_expr(&mut self, expr: &expr::Logical) -> Self::ReturnType {
+        let left = self.evaluate(expr.left.as_ref())?;
+
+        if expr.op.r#type == TokenType::KwOr {
+            if self.is_truthy(&left) {
+                return left;
+            }
+        } else {
+            if !self.is_truthy(&left) {
+                return left;
+            }
+        }
+
+        self.evaluate(expr.right.as_ref())?
+    }
 }

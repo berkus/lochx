@@ -31,7 +31,9 @@ pub struct Parser {
 /// block          → "{" declaration* "}" ;
 /// expression     → assignment ;
 /// assignment     → IDENTIFIER "=" assignment
-///                | equality ;
+///                | logic_or ;
+/// logic_or       → logic_and ( "or" logic_and )* ;
+/// logic_and      → equality ( "and" equality )* ;
 /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 /// term           → factor ( ( "-" | "+" ) factor )* ;
@@ -167,7 +169,7 @@ impl Parser {
 
     #[throws]
     fn assignment(&mut self) -> Expr {
-        let expr = self.equality()?;
+        let expr = self.logic_or()?;
         if self.match_any(vec![TokenType::Equal]) {
             let equals = self.previous();
             let value = self.assignment()?;
@@ -183,6 +185,40 @@ impl Parser {
                 }
             }
         }
+        expr
+    }
+
+    #[throws]
+    fn logic_or(&mut self) -> Expr {
+        let mut expr = self.logic_and()?;
+
+        while self.match_any(vec![TokenType::KwOr]) {
+            let op = self.previous();
+            let right = self.logic_and()?;
+            expr = Expr::Logical(expr::Logical {
+                op: op.clone(),
+                left: Box::new(expr),
+                right: Box::new(right),
+            });
+        }
+
+        expr
+    }
+
+    #[throws]
+    fn logic_and(&mut self) -> Expr {
+        let mut expr = self.equality()?;
+
+        while self.match_any(vec![TokenType::KwAnd]) {
+            let op = self.previous();
+            let right = self.equality()?;
+            expr = Expr::Logical(expr::Logical {
+                op: op.clone(),
+                left: Box::new(expr),
+                right: Box::new(right),
+            });
+        }
+
         expr
     }
 

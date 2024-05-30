@@ -134,4 +134,12 @@ impl expr::Visitor for AstPrinter {
     fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Self::ReturnType {
         format!("(assign {} <- {:?})", expr.name, expr.value)
     }
+
+    #[throws(RuntimeError)]
+    fn visit_logical_expr(&mut self, expr: &expr::Logical) -> Self::ReturnType {
+        self.parenthesize(
+            expr.op.lexeme(),
+            vec![expr.left.clone(), expr.right.clone()],
+        )?
+    }
 }
