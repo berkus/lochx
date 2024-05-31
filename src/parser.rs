@@ -22,11 +22,15 @@ pub struct Parser {
 ///                | statement ;
 /// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 /// statement      → exprStmt
+///                | forStmt
 ///                | ifStmt
 ///                | printStmt
 ///                | whileStmt
 ///                | block ;
 /// exprStmt       → expression ";" ;
+/// forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
+///                  expression? ";"
+///                  expression? ")" statement ;
 /// ifStmt         → "if" "(" expression ")" statement
 ///                  ("else" statement )? ;
 /// printStmt      → "print" expression ";" ;
@@ -104,6 +108,9 @@ impl Parser {
 
     #[throws]
     fn statement(&mut self) -> Stmt {
+        if self.match_any(vec![TokenType::KwFor]) {
+            return self.for_stmt()?;
+        }
         if self.match_any(vec![TokenType::KwIf]) {
             return self.if_stmt()?;
         }
@@ -117,6 +124,67 @@ impl Parser {
             return self.block_stmt()?;
         }
         self.expr_stmt()?
+    }
+
+    #[throws]
+    fn for_stmt(&mut self) -> Stmt {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'for'.")?;
+        let initializer = if self.match_any(vec![TokenType::Semicolon]) {
+            None
+        } else if self.match_any(vec![TokenType::KwVar]) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expr_stmt()?)
+        };
+        let condition = if !self.match_any(vec![TokenType::Semicolon]) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(
+            TokenType::Semicolon,
+            "Expected ';' after for loop condition.",
+        )?;
+        let increment = if !self.match_any(vec![TokenType::RightParen]) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(TokenType::RightParen, "Expected ')' after for clauses.")?;
+        let body = self.statement()?;
+
+        // Desugar into a while loop:
+        // {
+        //   initializer;
+        //   while (condition) {
+        //     body;
+        //     increment;
+        //   }
+        // }
+        let body = if let Some(increment) = increment {
+            Stmt::Block(vec![body, Stmt::Expression(increment)])
+        } else {
+            body
+        };
+        let condition = if let Some(condition) = condition {
+            condition
+        } else {
+            Expr::Literal(expr::Literal {
+                value: LiteralValue::Bool(true),
+            })
+        };
+
+        let body = Stmt::While(stmt::WhileStmt {
+            condition,
+            body: Box::new(body),
+        });
+
+        let body = if let Some(initializer) = initializer {
+            Stmt::Block(vec![initializer, body])
+        } else {
+            body
+        };
+        body
     }
 
     #[throws]
