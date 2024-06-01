@@ -1,9 +1,18 @@
+use crate::callable::{Function, NativeFunction};
+
 #[derive(Debug, Clone)]
 pub enum LiteralValue {
     Str(String),
     Num(f64),
     Nil,
     Bool(bool),
+    Callable(LochxCallable), // Function or NativeFunction call
+}
+
+#[derive(Debug, Clone)]
+pub enum LochxCallable {
+    Function(Box<Function>),
+    NativeFunction(Box<NativeFunction>),
 }
 
 impl std::fmt::Display for LiteralValue {
@@ -16,6 +25,10 @@ impl std::fmt::Display for LiteralValue {
                 LiteralValue::Num(n) => n.to_string().trim_end_matches(".0").to_string(),
                 LiteralValue::Nil => "nil".to_string(),
                 LiteralValue::Bool(b) => b.to_string(),
+                LiteralValue::Callable(c) => match c {
+                    LochxCallable::Function(f) => format!("<fun {}>", f.name),
+                    LochxCallable::NativeFunction(_) => format!("<native fun>"),
+                },
             }
         )
     }

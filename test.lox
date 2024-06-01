@@ -1,6 +1,6 @@
-// print "Hello world!";
-// 12413; // end of line comment
-// (1 + 2 / 3 - 4);
+print "Hello world!";
+12413; // end of line comment
+(1 + 2 / 3 - 4);
 
 var a = "global a";
 var b = "global b";
@@ -34,3 +34,29 @@ print nil and true;
 while (false) { true; }
 
 for (var i = 0; i < 10; i = i + 1) { print i; }
+
+//"one two three"();
+print clock();
+print clock();
+print clock();
+
+fun test() {
+  print "test";
+}
+
+test();
+
+fun count(n) {
+  if (n > 1) count(n - 1);
+  print n;
+}
+
+count(3);
+
+fun add(a, b, c) {
+  print a + b + c;
+}
+
+add(1, 2, 3);
+
+print add;

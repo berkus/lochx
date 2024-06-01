@@ -1,5 +1,6 @@
 use {
     crate::{
+        callable,
         error::RuntimeError,
         expr::{self, Expr},
         literal::LiteralValue,
@@ -45,8 +46,9 @@ pub struct Parser {
 /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 /// term           → factor ( ( "-" | "+" ) factor )* ;
 /// factor         → unary ( ( "/" | "*" ) unary )* ;
-/// unary          → ( "!" | "-" ) unary
-///                | primary ;
+/// unary          → ( "!" | "-" ) unary | call ;
+/// call           → primary ( "(" arguments? ")" )* ;
+/// arguments      → expression ( "," expression )* ;
 /// primary        → NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil"
 ///                | "(" expression ")" ;
 /// ```
@@ -83,10 +85,53 @@ impl Parser {
 
     #[throws]
     fn declaration(&mut self) -> Stmt {
+        if self.match_any(vec![TokenType::KwFun]) {
+            return self.function("function")?;
+        }
         if self.match_any(vec![TokenType::KwVar]) {
             return self.var_declaration()?;
         }
         self.statement()?
+    }
+
+    #[throws]
+    fn function(&mut self, kind: &'static str) -> Stmt {
+        let name = self.consume(
+            TokenType::Identifier,
+            format!("Expected {kind} name.").as_str(),
+        )?;
+        self.consume(
+            TokenType::LeftParen,
+            format!("Expected '(' after {kind} name.").as_str(),
+        )?;
+
+        let mut parameters = vec![];
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if parameters.len() > 255 {
+                    throw!(RuntimeError::TooManyArguments(self.peek())) // @todo TooManyParameters
+                }
+                parameters.push(self.consume(TokenType::Identifier, "Expected parameter name.")?);
+                if !self.match_any(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(
+            TokenType::RightParen,
+            format!("Expected ')' after {kind} parameters.").as_str(),
+        )?;
+
+        self.consume(
+            TokenType::LeftBrace,
+            format!("Expected '{{' before {kind} body.").as_str(),
+        )?;
+        let body = self.block()?;
+        Stmt::FunctionDecl(callable::Function {
+            name,
+            parameters,
+            body,
+        })
     }
 
     #[throws]
@@ -392,7 +437,45 @@ impl Parser {
             });
         }
 
-        self.primary()?
+        self.call()?
+    }
+
+    #[throws]
+    fn call(&mut self) -> Expr {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.match_any(vec![TokenType::LeftParen]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+
+        expr
+    }
+
+    #[throws]
+    fn finish_call(&mut self, callee: Expr) -> Expr {
+        let mut arguments = vec![];
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if arguments.len() > 255 {
+                    throw!(RuntimeError::TooManyArguments(self.peek()))
+                }
+                arguments.push(self.expression()?);
+                if !self.match_any(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        let paren = self.consume(TokenType::RightParen, "Expected ')' after arguments.")?;
+
+        Expr::Call(expr::Call {
+            callee: Box::new(callee),
+            paren,
+            arguments,
+        })
     }
 
     #[throws]

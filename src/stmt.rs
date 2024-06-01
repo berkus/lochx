@@ -1,5 +1,5 @@
 use {
-    crate::{error::RuntimeError, expr::Expr, scanner::Token},
+    crate::{callable::Function, error::RuntimeError, expr::Expr, scanner::Token},
     culpa::throws,
 };
 
@@ -12,6 +12,7 @@ pub enum Stmt {
     If(IfStmt),
     While(WhileStmt),
     Block(Vec<Stmt>),
+    FunctionDecl(Function),
 }
 
 #[derive(Debug, Clone)]
@@ -48,6 +49,8 @@ pub trait Visitor {
     #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &VarDecl) -> Self::ReturnType;
     #[throws(RuntimeError)]
+    fn visit_fundecl_stmt(&mut self, stmt: &Function) -> Self::ReturnType;
+    #[throws(RuntimeError)]
     fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType;
 }
 
@@ -67,6 +70,7 @@ impl Acceptor for Stmt {
             Stmt::While(w) => visitor.visit_while_stmt(w)?,
             Stmt::VarDecl(d) => visitor.visit_vardecl_stmt(d)?,
             Stmt::Block(b) => visitor.visit_block_stmt(b)?,
+            Stmt::FunctionDecl(f) => visitor.visit_fundecl_stmt(f)?,
             Stmt::ParseError => todo!(),
         }
     }

@@ -1,28 +1,41 @@
 use {
     crate::{
+        callable::{self, Callable},
         environment::Environment,
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
-        literal::LiteralValue,
+        literal::{LiteralValue, LochxCallable},
         scanner::TokenType,
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
     core::cell::RefCell,
-    culpa::throws,
+    culpa::{throw, throws},
     liso::{liso, OutputOnly},
     std::rc::Rc,
 };
 
 pub struct Interpreter {
     out: OutputOnly,
-    env: Rc<RefCell<Environment>>,
+    pub(super) globals: Rc<RefCell<Environment>>,
+    current_env: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
     pub fn new(out: OutputOnly) -> Self {
+        let env = Environment::new();
+        env.borrow_mut().define(
+            "clock".into(),
+            LiteralValue::Callable(LochxCallable::NativeFunction(Box::new(
+                callable::NativeFunction {
+                    arity: 0,
+                    body: callable::clock,
+                },
+            ))),
+        );
         Self {
             out,
-            env: Environment::new(),
+            globals: env.clone(),
+            current_env: env,
         }
     }
 
@@ -39,16 +52,16 @@ impl Interpreter {
     }
 
     #[throws(RuntimeError)]
-    fn execute_block(&mut self, stmts: Vec<Stmt>, env: Rc<RefCell<Environment>>) {
-        let previous = self.env.clone();
-        self.env = env;
+    pub(super) fn execute_block(&mut self, stmts: Vec<Stmt>, env: Rc<RefCell<Environment>>) {
+        let previous = self.current_env.clone();
+        self.current_env = env;
         for stmt in stmts {
             if let Err(_e) = self.execute(&stmt) {
                 // @todo report `e`
                 break;
             }
         }
-        self.env = previous;
+        self.current_env = previous;
     }
 
     #[throws(RuntimeError)]
@@ -75,14 +88,17 @@ impl stmt::Visitor for Interpreter {
     #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &stmt::VarDecl) -> Self::ReturnType {
         let value = self.evaluate(&stmt.initializer)?;
-        self.env
+        self.current_env
             .borrow_mut()
             .define(stmt.name.lexeme().clone(), value);
     }
 
     #[throws(RuntimeError)]
     fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType {
-        self.execute_block(stmts.to_vec(), Environment::nested(self.env.clone()))?;
+        self.execute_block(
+            stmts.to_vec(),
+            Environment::nested(self.current_env.clone()),
+        )?;
     }
 
     #[throws(RuntimeError)]
@@ -100,6 +116,14 @@ impl stmt::Visitor for Interpreter {
         while self.evaluate(&stmt.condition)?.is_truthy() {
             self.execute(stmt.body.as_ref())?;
         }
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_fundecl_stmt(&mut self, stmt: &callable::Function) -> Self::ReturnType {
+        self.current_env.borrow_mut().define(
+            stmt.name.lexeme(),
+            LiteralValue::Callable(LochxCallable::Function(Box::new(stmt.clone()))),
+        );
     }
 }
 
@@ -184,13 +208,13 @@ impl expr::Visitor for Interpreter {
 
     #[throws(RuntimeError)]
     fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
-        self.env.borrow().get(expr.name.clone())?
+        self.current_env.borrow().get(expr.name.clone())?
     }
 
     #[throws(RuntimeError)]
     fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Self::ReturnType {
         let value = self.evaluate(expr.value.as_ref())?;
-        self.env
+        self.current_env
             .borrow_mut()
             .assign(expr.name.clone(), value.clone())?;
         value
@@ -211,5 +235,34 @@ impl expr::Visitor for Interpreter {
         }
 
         self.evaluate(expr.right.as_ref())?
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_call_expr(&mut self, expr: &expr::Call) -> Self::ReturnType {
+        let callee = self.evaluate(expr.callee.as_ref())?;
+
+        match callee {
+            LiteralValue::Callable(callable) => {
+                let callable = match callable {
+                    LochxCallable::Function(f) => f as Box<dyn Callable>,
+                    LochxCallable::NativeFunction(f) => f as Box<dyn Callable>,
+                };
+
+                if expr.arguments.len() != callable.arity() {
+                    throw!(RuntimeError::InvalidArity(
+                        expr.paren.clone(),
+                        callable.arity(),
+                        expr.arguments.len()
+                    ))
+                }
+
+                let mut arguments = vec![];
+                for arg in expr.arguments.iter() {
+                    arguments.push(self.evaluate(arg)?);
+                }
+                return callable.call(self, arguments)?;
+            }
+            _ => throw!(RuntimeError::NotACallable),
+        };
     }
 }

@@ -1,8 +1,9 @@
 use {
     crate::{
+        callable,
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
-        literal::LiteralValue,
+        literal::{LiteralValue, LochxCallable},
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
     culpa::throws,
@@ -95,6 +96,15 @@ impl stmt::Visitor for AstPrinter {
             stmt.body.accept(self)?
         )
     }
+
+    #[throws(RuntimeError)]
+    fn visit_fundecl_stmt(&mut self, stmt: &callable::Function) -> Self::ReturnType {
+        format!(
+            "(fun {} {{ {} }})",
+            stmt.name,
+            self.print_stmt(stmt.body.clone())?
+        )
+    }
 }
 
 impl expr::Visitor for AstPrinter {
@@ -131,6 +141,10 @@ impl expr::Visitor for AstPrinter {
                     "false".to_string()
                 }
             }
+            LiteralValue::Callable(c) => match c {
+                LochxCallable::Function(f) => format!("<fun {}>", f.name),
+                LochxCallable::NativeFunction(_nf) => format!("<native fun>"),
+            },
         }
     }
 
@@ -150,5 +164,10 @@ impl expr::Visitor for AstPrinter {
             expr.op.lexeme(),
             vec![expr.left.clone(), expr.right.clone()],
         )?
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_call_expr(&mut self, expr: &expr::Call) -> Self::ReturnType {
+        format!("(call {} {:?})", expr.callee.accept(self)?, expr.arguments)
     }
 }

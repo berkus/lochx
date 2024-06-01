@@ -22,6 +22,8 @@ pub trait Visitor {
     fn visit_literal_expr(&self, expr: &Literal) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_var_expr(&self, expr: &Var) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_call_expr(&mut self, expr: &Call) -> Self::ReturnType;
 }
 
 /// Expression visitor acceptor.
@@ -40,6 +42,7 @@ pub enum Expr {
     Grouping(Grouping),
     Literal(Literal),
     Variable(Var),
+    Call(Call),
 }
 
 #[derive(Debug, Clone)]
@@ -83,6 +86,13 @@ pub struct Assign {
     pub value: Box<Expr>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Call {
+    pub callee: Box<Expr>,
+    pub paren: Token,
+    pub arguments: Vec<Expr>,
+}
+
 impl Acceptor for Expr {
     #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
@@ -94,6 +104,7 @@ impl Acceptor for Expr {
             Expr::Grouping(e) => e.accept(visitor)?,
             Expr::Literal(e) => e.accept(visitor)?,
             Expr::Variable(e) => e.accept(visitor)?,
+            Expr::Call(e) => e.accept(visitor)?,
         }
     }
 }
@@ -144,5 +155,12 @@ impl Acceptor for Var {
     #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_var_expr(self)?
+    }
+}
+
+impl Acceptor for Call {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_call_expr(self)?
     }
 }
