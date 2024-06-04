@@ -113,6 +113,16 @@ pub enum TokenType {
     KwWhile,
 }
 
+trait IsIdentifier {
+    fn is_identifier(&self) -> bool;
+}
+
+impl IsIdentifier for char {
+    fn is_identifier(&self) -> bool {
+        self.is_alphanumeric() || *self == '_'
+    }
+}
+
 impl<'a> Scanner<'a> {
     pub fn new(source: &'a str) -> Self {
         Self {
@@ -301,7 +311,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn identifier(&mut self) {
-        while self.peek().is_alphanumeric() {
+        while self.peek().is_identifier() {
             self.advance();
         }
 
