@@ -144,6 +144,12 @@ impl expr::Visitor for Interpreter {
             TokenType::Plus => match (left, right) {
                 (LiteralValue::Num(l), LiteralValue::Num(r)) => LiteralValue::Num(l + r),
                 (LiteralValue::Str(l), LiteralValue::Str(r)) => LiteralValue::Str(l + &r),
+                (LiteralValue::Num(l), LiteralValue::Str(r)) => {
+                    LiteralValue::Str(format!("{}{}", l, r))
+                }
+                (LiteralValue::Str(l), LiteralValue::Num(r)) => {
+                    LiteralValue::Str(format!("{}{}", l, r))
+                }
                 _ => todo!(),
             },
             TokenType::Minus => match (left, right) {
