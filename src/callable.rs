@@ -3,7 +3,7 @@ use {
         environment::Environment, error::RuntimeError, interpreter::Interpreter,
         literal::LiteralValue, scanner::Token, stmt::Stmt,
     },
-    culpa::throws,
+    culpa::{throw, throws},
     std::time::SystemTime,
 };
 
@@ -42,7 +42,13 @@ impl Callable for Function {
                 .borrow_mut()
                 .define(param.lexeme().clone(), arg.clone());
         }
-        interpreter.execute_block(self.body.clone(), environment)?;
+        let ret = interpreter.execute_block(self.body.clone(), environment);
+        if let Err(e) = ret {
+            match e {
+                RuntimeError::ReturnValue(v) => return v,
+                _ => throw!(e),
+            }
+        }
         LiteralValue::Nil
     }
 }

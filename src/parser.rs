@@ -26,6 +26,7 @@ pub struct Parser {
 ///                | forStmt
 ///                | ifStmt
 ///                | printStmt
+///                | returnStmt
 ///                | whileStmt
 ///                | block ;
 /// exprStmt       → expression ";" ;
@@ -34,6 +35,7 @@ pub struct Parser {
 ///                  expression? ")" statement ;
 /// ifStmt         → "if" "(" expression ")" statement
 ///                  ("else" statement )? ;
+/// returnStmt     → "return" expression? ";" ;
 /// printStmt      → "print" expression ";" ;
 /// whileStmt      → "while" "(" expression ")" statement ;
 /// block          → "{" declaration* "}" ;
@@ -162,6 +164,9 @@ impl Parser {
         if self.match_any(vec![TokenType::KwPrint]) {
             return self.print_stmt()?;
         }
+        if self.match_any(vec![TokenType::KwReturn]) {
+            return self.return_stmt()?;
+        }
         if self.match_any(vec![TokenType::KwWhile]) {
             return self.while_stmt()?;
         }
@@ -255,6 +260,20 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
         Stmt::Print(expr)
+    }
+
+    #[throws]
+    fn return_stmt(&mut self) -> Stmt {
+        let keyword = self.previous();
+        let value = if !self.check(TokenType::Semicolon) {
+            self.expression()?
+        } else {
+            Expr::Literal(expr::Literal {
+                value: LiteralValue::Nil,
+            })
+        };
+        self.consume(TokenType::Semicolon, "Expected ';' after return value.")?;
+        Stmt::Return(stmt::Return { keyword, value })
     }
 
     #[throws]

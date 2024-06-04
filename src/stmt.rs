@@ -7,12 +7,19 @@ use {
 pub enum Stmt {
     ParseError, // @todo add erroneous token stream here?
     Print(Expr),
+    Return(Return),
     Expression(Expr),
     VarDecl(VarDecl),
     If(IfStmt),
     While(WhileStmt),
     Block(Vec<Stmt>),
     FunctionDecl(Function),
+}
+
+#[derive(Debug, Clone)]
+pub struct Return {
+    pub keyword: Token,
+    pub value: Expr,
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +59,8 @@ pub trait Visitor {
     fn visit_fundecl_stmt(&mut self, stmt: &Function) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_return_stmt(&mut self, stmt: &Return) -> Self::ReturnType;
 }
 
 /// Statement visitor acceptor.
@@ -71,6 +80,7 @@ impl Acceptor for Stmt {
             Stmt::VarDecl(d) => visitor.visit_vardecl_stmt(d)?,
             Stmt::Block(b) => visitor.visit_block_stmt(b)?,
             Stmt::FunctionDecl(f) => visitor.visit_fundecl_stmt(f)?,
+            Stmt::Return(r) => visitor.visit_return_stmt(r)?,
             Stmt::ParseError => todo!(),
         }
     }

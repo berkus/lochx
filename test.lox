@@ -55,8 +55,32 @@ count(3);
 
 fun add(a, b, c) {
   print a + b + c;
+  return;
 }
 
 add(1, 2, 3);
 
 print add;
+
+fun procedure() {
+  print "don't return anything";
+}
+
+var result = procedure();
+print result;
+
+fun get_clock() {
+  return clock();
+}
+
+print get_clock();
+
+fun count(n) {
+  while (n < 100) {
+    print n;
+    if (n == 3) return n;
+    n = n + 1;
+  }
+}
+
+print count(1);

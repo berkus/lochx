@@ -56,9 +56,9 @@ impl Interpreter {
         let previous = self.current_env.clone();
         self.current_env = env;
         for stmt in stmts {
-            if let Err(_e) = self.execute(&stmt) {
-                // @todo report `e`
-                break;
+            if let Err(e) = self.execute(&stmt) {
+                self.current_env = previous;
+                throw!(e);
             }
         }
         self.current_env = previous;
@@ -124,6 +124,11 @@ impl stmt::Visitor for Interpreter {
             stmt.name.lexeme(),
             LiteralValue::Callable(LochxCallable::Function(Box::new(stmt.clone()))),
         );
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Self::ReturnType {
+        throw!(RuntimeError::ReturnValue(self.evaluate(&stmt.value)?))
     }
 }
 
