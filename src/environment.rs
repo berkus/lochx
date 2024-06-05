@@ -1,32 +1,36 @@
 use {
     crate::{error::RuntimeError, literal::LiteralValue, scanner::Token},
-    core::cell::RefCell,
+    anyhow::anyhow,
     culpa::{throw, throws},
-    std::{collections::HashMap, rc::Rc},
+    std::{
+        collections::HashMap,
+        sync::{Arc, RwLock},
+    },
 };
 
-pub struct Environment {
+pub type Environment = Arc<RwLock<EnvironmentImpl>>;
+
+#[derive(Debug)]
+pub struct EnvironmentImpl {
     values: HashMap<String, LiteralValue>,
-    enclosing: Option<Rc<RefCell<Environment>>>,
+    enclosing: Option<Environment>,
 }
 
-impl Environment {
-    pub fn new() -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
+impl EnvironmentImpl {
+    pub fn new() -> Environment {
+        Arc::new(RwLock::new(Self {
             values: HashMap::new(),
             enclosing: None,
         }))
     }
 
-    pub fn nested(parent: Rc<RefCell<Environment>>) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
+    pub fn nested(parent: Environment) -> Environment {
+        Arc::new(RwLock::new(Self {
             values: HashMap::new(),
             enclosing: Some(parent.clone()),
         }))
     }
-}
 
-impl Environment {
     pub fn define(&mut self, name: String, value: LiteralValue) {
         self.values.insert(name, value);
     }
@@ -37,7 +41,10 @@ impl Environment {
             return self.values.get(&name.lexeme()).unwrap().clone();
         }
         if let Some(parent) = &self.enclosing {
-            return parent.borrow().get(name)?;
+            return parent
+                .read()
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))?
+                .get(name)?;
         }
         throw!(RuntimeError::UndefinedVariable(name.lexeme()))
     }
@@ -49,7 +56,10 @@ impl Environment {
             return;
         }
         if let Some(parent) = &self.enclosing {
-            parent.borrow_mut().assign(name, value)?;
+            parent
+                .write()
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign")))?
+                .assign(name, value)?;
             return;
         }
         throw!(RuntimeError::UndefinedVariable(name.lexeme()))

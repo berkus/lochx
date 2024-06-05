@@ -1,8 +1,13 @@
 use {
     crate::{
-        environment::Environment, error::RuntimeError, interpreter::Interpreter,
-        literal::LiteralValue, scanner::Token, stmt::Stmt,
+        environment::{Environment, EnvironmentImpl},
+        error::RuntimeError,
+        interpreter::Interpreter,
+        literal::LiteralValue,
+        scanner::Token,
+        stmt::Stmt,
     },
+    anyhow::anyhow,
     culpa::{throw, throws},
     std::time::SystemTime,
 };
@@ -12,6 +17,7 @@ pub struct Function {
     pub name: Token,
     pub parameters: Vec<Token>,
     pub body: Vec<Stmt>,
+    pub closure: Environment,
 }
 
 #[derive(Debug, Clone)]
@@ -36,10 +42,11 @@ impl Callable for Function {
 
     #[throws(RuntimeError)]
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LiteralValue>) -> LiteralValue {
-        let environment = Environment::nested(interpreter.globals.clone());
+        let environment = EnvironmentImpl::nested(self.closure.clone());
         for (param, arg) in self.parameters.iter().zip(arguments.iter()) {
             environment
-                .borrow_mut()
+                .write()
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in call")))?
                 .define(param.lexeme().clone(), arg.clone());
         }
         let ret = interpreter.execute_block(self.body.clone(), environment);

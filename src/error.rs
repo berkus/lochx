@@ -21,4 +21,6 @@ pub enum RuntimeError {
     InvalidArity(Token, usize, usize),
     #[error("Clock may have gone backwards")]
     ClockBackwards,
+    #[error("Cannot obtain the environment due to {0}.")]
+    EnvironmentError(anyhow::Error),
 }

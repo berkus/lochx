@@ -1,29 +1,28 @@
 use {
     crate::{
         callable::{self, Callable},
-        environment::Environment,
+        environment::{Environment, EnvironmentImpl},
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
         literal::{LiteralValue, LochxCallable},
         scanner::TokenType,
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
-    core::cell::RefCell,
+    anyhow::anyhow,
     culpa::{throw, throws},
     liso::{liso, OutputOnly},
-    std::rc::Rc,
 };
 
 pub struct Interpreter {
     out: OutputOnly,
-    pub(super) globals: Rc<RefCell<Environment>>,
-    current_env: Rc<RefCell<Environment>>,
+    pub(super) globals: Environment,
+    current_env: Environment,
 }
 
 impl Interpreter {
     pub fn new(out: OutputOnly) -> Self {
-        let env = Environment::new();
-        env.borrow_mut().define(
+        let env = EnvironmentImpl::new();
+        env.write().expect("write lock in new").define(
             "clock".into(),
             LiteralValue::Callable(LochxCallable::NativeFunction(Box::new(
                 callable::NativeFunction {
@@ -52,7 +51,7 @@ impl Interpreter {
     }
 
     #[throws(RuntimeError)]
-    pub(super) fn execute_block(&mut self, stmts: Vec<Stmt>, env: Rc<RefCell<Environment>>) {
+    pub(super) fn execute_block(&mut self, stmts: Vec<Stmt>, env: Environment) {
         let previous = self.current_env.clone();
         self.current_env = env;
         for stmt in stmts {
@@ -89,7 +88,10 @@ impl stmt::Visitor for Interpreter {
     fn visit_vardecl_stmt(&mut self, stmt: &stmt::VarDecl) -> Self::ReturnType {
         let value = self.evaluate(&stmt.initializer)?;
         self.current_env
-            .borrow_mut()
+            .write()
+            .map_err(|_| {
+                RuntimeError::EnvironmentError(anyhow!("write lock in visit_vardecl_stmt"))
+            })?
             .define(stmt.name.lexeme().clone(), value);
     }
 
@@ -97,7 +99,7 @@ impl stmt::Visitor for Interpreter {
     fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType {
         self.execute_block(
             stmts.to_vec(),
-            Environment::nested(self.current_env.clone()),
+            EnvironmentImpl::nested(self.current_env.clone()),
         )?;
     }
 
@@ -120,10 +122,21 @@ impl stmt::Visitor for Interpreter {
 
     #[throws(RuntimeError)]
     fn visit_fundecl_stmt(&mut self, stmt: &callable::Function) -> Self::ReturnType {
-        self.current_env.borrow_mut().define(
-            stmt.name.lexeme(),
-            LiteralValue::Callable(LochxCallable::Function(Box::new(stmt.clone()))),
-        );
+        let fun = callable::Function {
+            name: stmt.name.clone(),
+            parameters: stmt.parameters.clone(),
+            body: stmt.body.clone(),
+            closure: EnvironmentImpl::nested(self.current_env.clone()),
+        };
+        self.current_env
+            .write()
+            .map_err(|_| {
+                RuntimeError::EnvironmentError(anyhow!("write lock in visit_fundecl_stmt"))
+            })?
+            .define(
+                stmt.name.lexeme(),
+                LiteralValue::Callable(LochxCallable::Function(Box::new(fun))),
+            );
     }
 
     #[throws(RuntimeError)]
@@ -219,14 +232,20 @@ impl expr::Visitor for Interpreter {
 
     #[throws(RuntimeError)]
     fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
-        self.current_env.borrow().get(expr.name.clone())?
+        self.current_env
+            .read()
+            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in visit_var_expr")))?
+            .get(expr.name.clone())?
     }
 
     #[throws(RuntimeError)]
     fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Self::ReturnType {
         let value = self.evaluate(expr.value.as_ref())?;
         self.current_env
-            .borrow_mut()
+            .write()
+            .map_err(|_| {
+                RuntimeError::EnvironmentError(anyhow!("write lock in visit_assign_expr"))
+            })?
             .assign(expr.name.clone(), value.clone())?;
         value
     }

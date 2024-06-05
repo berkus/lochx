@@ -1,6 +1,7 @@
 use {
     crate::{
         callable,
+        environment::EnvironmentImpl,
         error::RuntimeError,
         expr::{self, Expr},
         literal::LiteralValue,
@@ -129,10 +130,12 @@ impl Parser {
             format!("Expected '{{' before {kind} body.").as_str(),
         )?;
         let body = self.block()?;
+        let closure = EnvironmentImpl::new(); // Dummy.
         Stmt::FunctionDecl(callable::Function {
             name,
             parameters,
             body,
+            closure,
         })
     }
 

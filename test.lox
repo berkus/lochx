@@ -94,3 +94,16 @@ for (var i = 0; i < 20; i = i + 1) {
   print "fib(" + i + ")";
   print fib(i);
 }
+
+fun makeCounter() {
+  var i = 0;
+  fun count() {
+    i = i + 1;
+    print "counter " + i;
+  }
+  return count;
+}
+
+var counter = makeCounter();
+counter(); // "counter 1".
+counter(); // "counter 2".
