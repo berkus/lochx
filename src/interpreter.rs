@@ -5,7 +5,8 @@ use {
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
         literal::{LiteralValue, LochxCallable},
-        scanner::TokenType,
+        runtime::source,
+        scanner::{SourceToken, TokenType},
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
     anyhow::anyhow,
@@ -92,7 +93,7 @@ impl stmt::Visitor for Interpreter {
             .map_err(|_| {
                 RuntimeError::EnvironmentError(anyhow!("write lock in visit_vardecl_stmt"))
             })?
-            .define(stmt.name.lexeme().clone(), value);
+            .define(stmt.name.lexeme(source()), value);
     }
 
     #[throws(RuntimeError)]
@@ -134,7 +135,7 @@ impl stmt::Visitor for Interpreter {
                 RuntimeError::EnvironmentError(anyhow!("write lock in visit_fundecl_stmt"))
             })?
             .define(
-                stmt.name.lexeme(),
+                stmt.name.lexeme(source()),
                 LiteralValue::Callable(LochxCallable::Function(Box::new(fun))),
             );
     }
@@ -235,7 +236,7 @@ impl expr::Visitor for Interpreter {
         self.current_env
             .read()
             .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in visit_var_expr")))?
-            .get(expr.name.clone())?
+            .get(SourceToken::new(expr.name.clone(), source()))?
     }
 
     #[throws(RuntimeError)]
@@ -246,7 +247,7 @@ impl expr::Visitor for Interpreter {
             .map_err(|_| {
                 RuntimeError::EnvironmentError(anyhow!("write lock in visit_assign_expr"))
             })?
-            .assign(expr.name.clone(), value.clone())?;
+            .assign(SourceToken::new(expr.name.clone(), source()), value.clone())?;
         value
     }
 

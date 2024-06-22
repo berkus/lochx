@@ -4,6 +4,7 @@ use {
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
         literal::{LiteralValue, LochxCallable},
+        runtime::source,
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
     culpa::throws,
@@ -118,14 +119,14 @@ impl expr::Visitor for AstPrinter {
     #[throws(RuntimeError)]
     fn visit_binary_expr(&mut self, expr: &expr::Binary) -> Self::ReturnType {
         self.parenthesize(
-            expr.op.lexeme(),
+            expr.op.lexeme(source()),
             vec![expr.left.clone(), expr.right.clone()],
         )?
     }
 
     #[throws(RuntimeError)]
     fn visit_unary_expr(&mut self, expr: &expr::Unary) -> Self::ReturnType {
-        self.parenthesize(expr.op.lexeme(), vec![expr.right.clone()])?
+        self.parenthesize(expr.op.lexeme(source()), vec![expr.right.clone()])?
     }
 
     #[throws(RuntimeError)]
@@ -166,7 +167,7 @@ impl expr::Visitor for AstPrinter {
     #[throws(RuntimeError)]
     fn visit_logical_expr(&mut self, expr: &expr::Logical) -> Self::ReturnType {
         self.parenthesize(
-            expr.op.lexeme(),
+            expr.op.lexeme(source()),
             vec![expr.left.clone(), expr.right.clone()],
         )?
     }

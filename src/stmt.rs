@@ -1,11 +1,12 @@
 use {
-    crate::{callable::Function, error::RuntimeError, expr::Expr, scanner::Token},
+    crate::{callable::Function, error::RuntimeError, expr::Expr, runtime::source, scanner::Token},
     culpa::throws,
 };
 
+/// Statement AST node.
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    ParseError, // @todo add erroneous token stream here?
+    ParseError { token: Token },
     Print(Expr),
     Return(Return),
     Expression(Expr),
@@ -81,7 +82,10 @@ impl Acceptor for Stmt {
             Stmt::Block(b) => visitor.visit_block_stmt(b)?,
             Stmt::FunctionDecl(f) => visitor.visit_fundecl_stmt(f)?,
             Stmt::Return(r) => visitor.visit_return_stmt(r)?,
-            Stmt::ParseError => todo!(),
+            Stmt::ParseError { token } => {
+                crate::error(token.position.clone(), source(), "Parse error");
+                todo!()
+            }
         }
     }
 }

@@ -5,7 +5,8 @@ use {
         error::RuntimeError,
         expr::{self, Expr},
         literal::LiteralValue,
-        scanner::{Token, TokenType},
+        runtime::source,
+        scanner::{SourcePosition, Token, TokenType},
         stmt::{self, Stmt},
     },
     anyhow::{anyhow, Error},
@@ -79,9 +80,17 @@ impl Parser {
     fn declaration_with_error_handling(&mut self) -> Stmt {
         let decl = self.declaration();
         if let Err(e) = decl {
-            crate::error(999, e.to_string().as_str());
+            crate::error(
+                SourcePosition {
+                    line: 1,
+                    span: (0..5),
+                },
+                source(),
+                e.to_string().as_str(),
+            );
+            let token = self.peek();
             self.synchronize();
-            return Stmt::ParseError;
+            return Stmt::ParseError { token };
         }
         decl?
     }

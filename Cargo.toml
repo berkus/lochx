@@ -9,4 +9,5 @@ argh = "0.1.12"
 culpa = "1.0.2"
 liso = "1.2.1"
 maplit = "1.0.2"
+miette = { version = "7.2.0", features = ["fancy"] }
 thiserror = "1.0.61"
