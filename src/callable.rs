@@ -4,6 +4,7 @@ use {
         error::RuntimeError,
         interpreter::Interpreter,
         literal::LiteralValue,
+        runtime::source,
         scanner::Token,
         stmt::Stmt,
     },
@@ -46,8 +47,8 @@ impl Callable for Function {
         for (param, arg) in self.parameters.iter().zip(arguments.iter()) {
             environment
                 .write()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in call")))?
-                .define(param.lexeme().clone(), arg.clone());
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in call")))? // @todo miette!
+                .define(param.lexeme(source()), arg.clone());
         }
         let ret = interpreter.execute_block(self.body.clone(), environment);
         if let Err(e) = ret {

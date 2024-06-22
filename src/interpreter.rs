@@ -5,7 +5,8 @@ use {
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
         literal::{LiteralValue, LochxCallable},
-        scanner::TokenType,
+        runtime::source,
+        scanner::{SourceToken, Token, TokenType},
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
     anyhow::anyhow,
@@ -91,8 +92,9 @@ impl stmt::Visitor for Interpreter {
             .write()
             .map_err(|_| {
                 RuntimeError::EnvironmentError(anyhow!("write lock in visit_vardecl_stmt"))
+                // @todo miette!
             })?
-            .define(stmt.name.lexeme().clone(), value);
+            .define(stmt.name.lexeme(source()), value);
     }
 
     #[throws(RuntimeError)]
@@ -132,9 +134,10 @@ impl stmt::Visitor for Interpreter {
             .write()
             .map_err(|_| {
                 RuntimeError::EnvironmentError(anyhow!("write lock in visit_fundecl_stmt"))
+                // @todo miette!
             })?
             .define(
-                stmt.name.lexeme(),
+                stmt.name.lexeme(source()),
                 LiteralValue::Callable(LochxCallable::Function(Box::new(fun))),
             );
     }
@@ -163,35 +166,35 @@ impl expr::Visitor for Interpreter {
                 (LiteralValue::Str(l), LiteralValue::Num(r)) => {
                     LiteralValue::Str(format!("{}{}", l, r))
                 }
-                _ => todo!(),
+                _ => invalid_binop_arguments(expr.op.clone()),
             },
             TokenType::Minus => match (left, right) {
                 (LiteralValue::Num(l), LiteralValue::Num(r)) => LiteralValue::Num(l - r),
-                _ => todo!(),
+                _ => invalid_binop_arguments(expr.op.clone()),
             },
             TokenType::Star => match (left, right) {
                 (LiteralValue::Num(l), LiteralValue::Num(r)) => LiteralValue::Num(l * r),
-                _ => todo!(),
+                _ => invalid_binop_arguments(expr.op.clone()),
             },
             TokenType::Slash => match (left, right) {
                 (LiteralValue::Num(l), LiteralValue::Num(r)) => LiteralValue::Num(l / r),
-                _ => todo!(),
+                _ => invalid_binop_arguments(expr.op.clone()),
             },
             TokenType::Greater => match (left, right) {
                 (LiteralValue::Num(l), LiteralValue::Num(r)) => LiteralValue::Bool(l > r),
-                _ => todo!(),
+                _ => invalid_binop_arguments(expr.op.clone()),
             },
             TokenType::GreaterEqual => match (left, right) {
                 (LiteralValue::Num(l), LiteralValue::Num(r)) => LiteralValue::Bool(l >= r),
-                _ => todo!(),
+                _ => invalid_binop_arguments(expr.op.clone()),
             },
             TokenType::Less => match (left, right) {
                 (LiteralValue::Num(l), LiteralValue::Num(r)) => LiteralValue::Bool(l < r),
-                _ => todo!(),
+                _ => invalid_binop_arguments(expr.op.clone()),
             },
             TokenType::LessEqual => match (left, right) {
                 (LiteralValue::Num(l), LiteralValue::Num(r)) => LiteralValue::Bool(l <= r),
-                _ => todo!(),
+                _ => invalid_binop_arguments(expr.op.clone()),
             },
             TokenType::BangEqual => match (left, right) {
                 (LiteralValue::Num(l), LiteralValue::Num(r)) => LiteralValue::Bool(l != r),
@@ -203,7 +206,7 @@ impl expr::Visitor for Interpreter {
                 (LiteralValue::Str(l), LiteralValue::Str(r)) => LiteralValue::Bool(l == r),
                 _ => LiteralValue::Bool(false),
             },
-            _ => unimplemented!(),
+            _ => invalid_binop_arguments(expr.op.clone()),
         }
     }
 
@@ -213,7 +216,7 @@ impl expr::Visitor for Interpreter {
         match expr.op.r#type {
             TokenType::Minus => match right {
                 LiteralValue::Num(n) => LiteralValue::Num(-n),
-                _ => todo!(),
+                _ => invalid_unop_arguments(expr.op.clone()),
             },
             TokenType::Bang => LiteralValue::Bool(!right.is_truthy()),
             _ => unreachable!(),
@@ -235,7 +238,7 @@ impl expr::Visitor for Interpreter {
         self.current_env
             .read()
             .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in visit_var_expr")))?
-            .get(expr.name.clone())?
+            .get(SourceToken::new(expr.name.clone(), source()))?
     }
 
     #[throws(RuntimeError)]
@@ -246,7 +249,7 @@ impl expr::Visitor for Interpreter {
             .map_err(|_| {
                 RuntimeError::EnvironmentError(anyhow!("write lock in visit_assign_expr"))
             })?
-            .assign(expr.name.clone(), value.clone())?;
+            .assign(SourceToken::new(expr.name.clone(), source()), value.clone())?;
         value
     }
 
@@ -292,7 +295,31 @@ impl expr::Visitor for Interpreter {
                 }
                 return callable.call(self, arguments)?;
             }
-            _ => throw!(RuntimeError::NotACallable),
+            _ => throw!(RuntimeError::NotACallable(expr.paren.clone())),
         };
     }
+}
+
+fn invalid_binop_arguments(op: Token) -> LiteralValue {
+    crate::error(
+        RuntimeError::ParseError {
+            token: op.clone(),
+            expected: TokenType::EOF,
+            message: "Unexpected arguments".into(),
+        },
+        "Invalid arguments to binary expression",
+    );
+    LiteralValue::Nil
+}
+
+fn invalid_unop_arguments(op: Token) -> LiteralValue {
+    crate::error(
+        RuntimeError::ParseError {
+            token: op.clone(),
+            expected: TokenType::EOF,
+            message: "Unexpected arguments".into(),
+        },
+        "Invalid arguments to unary expression",
+    );
+    LiteralValue::Nil
 }

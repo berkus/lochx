@@ -3,9 +3,10 @@ use {
     culpa::throws,
 };
 
+/// Statement AST node.
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    ParseError, // @todo add erroneous token stream here?
+    ParseError { token: Token },
     Print(Expr),
     Return(Return),
     Expression(Expr),
@@ -43,7 +44,7 @@ pub struct WhileStmt {
 
 /// Statements visitor.
 pub trait Visitor {
-    type ReturnType;
+    type ReturnType: Default;
 
     #[throws(RuntimeError)]
     fn visit_print_stmt(&mut self, stmt: &Expr) -> Self::ReturnType;
@@ -81,7 +82,17 @@ impl Acceptor for Stmt {
             Stmt::Block(b) => visitor.visit_block_stmt(b)?,
             Stmt::FunctionDecl(f) => visitor.visit_fundecl_stmt(f)?,
             Stmt::Return(r) => visitor.visit_return_stmt(r)?,
-            Stmt::ParseError => todo!(),
+            Stmt::ParseError { token } => {
+                crate::error(
+                    RuntimeError::ParseError {
+                        token: token.clone(),
+                        expected: crate::scanner::TokenType::EOF,
+                        message: "Parse error".into(),
+                    },
+                    "Synchronizing parse state",
+                );
+                V::ReturnType::default()
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 use {
-    crate::{error::RuntimeError, literal::LiteralValue, scanner::Token},
+    crate::{error::RuntimeError, literal::LiteralValue, scanner::SourceToken},
     anyhow::anyhow,
     culpa::{throw, throws},
     std::{
@@ -36,32 +36,40 @@ impl EnvironmentImpl {
     }
 
     #[throws(RuntimeError)]
-    pub fn get(&self, name: Token) -> LiteralValue {
-        if self.values.contains_key(&name.lexeme()) {
-            return self.values.get(&name.lexeme()).unwrap().clone();
+    pub fn get(&self, name: SourceToken) -> LiteralValue {
+        if self.values.contains_key(name.to_str()) {
+            return self.values.get(name.to_str()).unwrap().clone();
         }
         if let Some(parent) = &self.enclosing {
             return parent
                 .read()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))?
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))? // @todo miette!
                 .get(name)?;
         }
-        throw!(RuntimeError::UndefinedVariable(name.lexeme()))
+        throw!(RuntimeError::UndefinedVariable(
+            name.token.clone(),
+            name.to_str().into()
+        ))
     }
 
     #[throws(RuntimeError)]
-    pub fn assign(&mut self, name: Token, value: LiteralValue) {
-        if self.values.contains_key(&name.lexeme()) {
-            self.values.entry(name.lexeme()).and_modify(|e| *e = value);
+    pub fn assign(&mut self, name: SourceToken, value: LiteralValue) {
+        if self.values.contains_key(name.to_str()) {
+            self.values
+                .entry(name.to_str().into())
+                .and_modify(|e| *e = value);
             return;
         }
         if let Some(parent) = &self.enclosing {
             parent
                 .write()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign")))?
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign")))? // @todo miette!
                 .assign(name, value)?;
             return;
         }
-        throw!(RuntimeError::UndefinedVariable(name.lexeme()))
+        throw!(RuntimeError::UndefinedVariable(
+            name.token.clone(),
+            name.to_str().into()
+        ))
     }
 }

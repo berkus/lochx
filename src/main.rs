@@ -1,11 +1,15 @@
+#![feature(sync_unsafe_cell)]
+
 use {
     crate::{ast_printer::AstPrinter, parser::Parser},
     anyhow::{anyhow, Error},
     argh::FromArgs,
     culpa::{throw, throws},
+    error::RuntimeError,
     interpreter::Interpreter,
     liso::{liso, OutputOnly, Response},
-    std::sync::{Mutex, OnceLock},
+    miette::{LabeledSpan, MietteDiagnostic, Report},
+    std::sync::OnceLock,
 };
 
 mod ast_printer;
@@ -16,6 +20,7 @@ mod expr;
 mod interpreter;
 mod literal;
 mod parser;
+mod runtime;
 mod scanner;
 mod stmt;
 
@@ -47,33 +52,41 @@ fn main() {
         throw!(anyhow!("Usage: lochx [script file]"));
     }
 
+    miette::set_hook(Box::new(|_| {
+        Box::new(
+            miette::MietteHandlerOpts::new()
+                .unicode(true) // liso doesn't wrapln! unicode output well.. use println!
+                .color(false) // liso doesn't handle color codes well..
+                .context_lines(3)
+                .build(),
+        )
+    }))
+    .unwrap();
+
     let io = liso::InputOutput::new();
     let _ = OUT.set(io.clone_output());
-    let _ = unsafe {
-        INTERPRETER
-            .lock()
-            .unwrap()
-            .set(Interpreter::new(io.clone_output()))
-    };
 
     if args.script.len() == 1 {
-        run_script(&args.script[0])?;
+        run_script(io, &args.script[0])?;
     } else {
         run_repl(io)?;
     }
 }
 
 static OUT: OnceLock<OutputOnly> = OnceLock::new();
-static mut INTERPRETER: Mutex<OnceLock<Interpreter>> = Mutex::new(OnceLock::new());
 
 #[throws]
 fn run_repl(mut io: liso::InputOutput) {
+    let mut interpreter = Interpreter::new(io.clone_output());
+    runtime::set_source("");
     io.prompt(liso!(fg = green, bold, "> ", reset), true, false);
     loop {
         match io.read_blocking() {
             Response::Input(line) => {
-                io.echoln(liso!(fg = green, dim, "> ", fg = none, &line));
-                run(line.as_str())?
+                let source = line.as_str();
+                io.echoln(liso!(fg = green, dim, "> ", fg = none, source));
+                let scan_offset = runtime::append_source(source);
+                run(&mut interpreter, source, scan_offset)?
             }
             Response::Discarded(line) => {
                 io.echoln(liso!(bold + dim, "X ", -bold, line));
@@ -87,16 +100,18 @@ fn run_repl(mut io: liso::InputOutput) {
 }
 
 #[throws]
-fn run_script(script: &str) {
+fn run_script(io: liso::InputOutput, script: &str) {
     let contents = std::fs::read_to_string(script)?;
-    run(&contents)?
+    let mut interpreter = Interpreter::new(io.clone_output());
+    runtime::set_source(contents.clone());
+    run(&mut interpreter, &contents, 0)?
 }
 
 #[throws]
-fn run(source: &str) {
+fn run(interpreter: &mut Interpreter, source: &str, scan_offset: usize) {
     use crate::scanner::Scanner;
 
-    let mut scanner = Scanner::new(source);
+    let mut scanner = Scanner::new(source, scan_offset);
     let tokens = scanner.scan_tokens();
 
     let mut parser = Parser::new(tokens);
@@ -104,7 +119,7 @@ fn run(source: &str) {
     let ast = parser.parse();
 
     if let Err(e) = ast {
-        error(1, e.to_string().as_str());
+        error(e, "Parsing error");
         return;
     }
 
@@ -118,32 +133,52 @@ fn run(source: &str) {
         fg = none
     ));
 
-    let value = unsafe {
-        INTERPRETER
-            .lock()
-            .unwrap()
-            .get_mut()
-            .expect("Must be set at start")
-            .interpret(ast)
-    };
+    let value = interpreter.interpret(ast);
 
     if let Err(e) = value {
-        OUT.get().expect("Must be set at start").wrapln(liso!(
-            fg = red,
-            bold,
-            format!("Runtime error: {}", e),
-            fg = none
-        ));
+        error(e, "Runtime error");
         return;
     }
 }
-// @todo use nom_report to report exact parse error locations
 
-pub fn error(line: usize, message: &str) {
-    OUT.get().expect("Must be set at start").wrapln(liso!(
+pub fn error(runtime_error: RuntimeError, message: &str) {
+    let (span, inner_message) = match runtime_error {
+        RuntimeError::ParseError {
+            token,
+            expected,
+            message,
+        } => (token.position.span, message),
+        RuntimeError::ScanError { location } => (location.span, "Here".into()),
+        RuntimeError::UndefinedVariable(ref t, _) => {
+            (t.position.span.clone(), format!("{}", runtime_error))
+        }
+        RuntimeError::InvalidAssignmentTarget(ref t) => {
+            (t.position.span.clone(), format!("{}", runtime_error))
+        }
+        RuntimeError::ExpectedExpression(ref t) => {
+            (t.position.span.clone(), format!("{}", runtime_error))
+        }
+        RuntimeError::TooManyArguments(ref t) => {
+            (t.position.span.clone(), format!("{}", runtime_error))
+        }
+        RuntimeError::NotACallable(ref t) => {
+            (t.position.span.clone(), format!("{}", runtime_error))
+        }
+        RuntimeError::InvalidArity(ref t, _, _) => {
+            (t.position.span.clone(), format!("{}", runtime_error))
+        }
+        _ => ((0..0), format!("{message}: {}", runtime_error)), // @todo skip label if no span
+    };
+
+    let report = Report::new(
+        MietteDiagnostic::new(message).with_label(LabeledSpan::at(span, inner_message)),
+    )
+    .with_source_code(runtime::source());
+
+    OUT.get().expect("Must be set at start").println(liso!(
         fg = red,
         bold,
-        format!("[line {}] {}", line, message),
-        reset
-    ))
+        format!("{:?}", report),
+        fg = none
+    ));
 }

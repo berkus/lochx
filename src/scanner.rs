@@ -1,44 +1,55 @@
 use {
-    crate::{error, literal::LiteralValue},
+    crate::{error::RuntimeError, literal::LiteralValue},
     maplit::hashmap,
     std::collections::HashMap,
 };
 
-/// Current scanner state for iterating over the source input.
-pub struct Scanner<'a> {
-    source: &'a str,
-    line: usize,
-    start: usize,
-    current: usize,
-    tokens: Vec<Token>,
-    keywords: HashMap<&'static str, TokenType>,
+#[derive(Debug, Clone)]
+pub struct SourcePosition {
+    pub line: usize,
+    pub span: std::ops::Range<usize>,
+}
+
+impl std::fmt::Display for SourcePosition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}:{}..{}]", self.line, self.span.start, self.span.end)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SourceToken<'src> {
+    pub token: Token,
+    source: &'src str,
+}
+
+impl<'src> SourceToken<'src> {
+    pub fn new(token: Token, source: &'src str) -> Self {
+        Self { token, source }
+    }
+
+    pub fn to_str(&self) -> &str {
+        &self.source[self.token.position.span.clone()]
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Token {
     pub r#type: TokenType,
-    lexeme: String, // @todo: Use Range into a source str (to print error information)
-    line: usize,
+    pub position: SourcePosition,
     literal: Option<LiteralValue>,
 }
 
 impl Token {
-    pub fn new(
-        r#type: TokenType,
-        lexeme: &str,
-        line: usize,
-        literal: Option<LiteralValue>,
-    ) -> Self {
+    pub fn new(r#type: TokenType, position: SourcePosition, literal: Option<LiteralValue>) -> Self {
         Self {
             r#type,
-            lexeme: lexeme.to_string(),
-            line,
+            position,
             literal,
         }
     }
 
-    pub fn lexeme(&self) -> String {
-        self.lexeme.clone()
+    pub fn lexeme(&self, source: &str) -> String {
+        source[self.position.span.clone()].into()
     }
 
     pub fn literal_num(&self) -> Option<f64> {
@@ -58,7 +69,7 @@ impl Token {
 
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "line {}: {:?} {}", self.line, self.r#type, self.lexeme)
+        write!(f, "{:?} {}", self.r#type, self.position)
     }
 }
 
@@ -123,10 +134,22 @@ impl IsIdentifier for char {
     }
 }
 
+/// Current scanner state for iterating over the source input.
+pub struct Scanner<'src> {
+    source: &'src str,
+    scan_offset: usize, // start offset for piecewise scanning
+    line: usize,
+    start: usize,
+    current: usize,
+    tokens: Vec<Token>,
+    keywords: HashMap<&'static str, TokenType>,
+}
+
 impl<'a> Scanner<'a> {
-    pub fn new(source: &'a str) -> Self {
+    pub fn new(source: &'a str, scan_offset: usize) -> Self {
         Self {
             source,
+            scan_offset,
             line: 1,
             current: 0,
             start: 0,
@@ -225,7 +248,12 @@ impl<'a> Scanner<'a> {
                 self.line += 1;
             }
             _ => {
-                error(self.line, &format!("Unexpected character `{}`", c));
+                crate::error(
+                    RuntimeError::ScanError {
+                        location: self.current_location(),
+                    },
+                    &format!("Unexpected character `{}`", c),
+                );
             }
         }
     }
@@ -279,8 +307,10 @@ impl<'a> Scanner<'a> {
             self.advance();
         }
         if self.is_at_end() {
-            error(
-                self.line,
+            crate::error(
+                RuntimeError::ScanError {
+                    location: self.current_location(),
+                },
                 &format!("Unterminated string starting at {}.", self.start),
             );
             return;
@@ -327,15 +357,20 @@ impl<'a> Scanner<'a> {
         &self.source[self.start..self.current]
     }
 
-    fn add_token(&mut self, r#type: TokenType) {
-        let lexeme = &self.source[self.start..self.current];
-        self.tokens
-            .push(Token::new(r#type, lexeme, self.line, None));
+    fn current_location(&self) -> SourcePosition {
+        SourcePosition {
+            line: self.line,
+            span: self.start + self.scan_offset..self.current + self.scan_offset,
+        }
     }
 
-    // Ignores lexeme for now, but for debugging we probably want to keep it around anyway?
+    fn add_token(&mut self, r#type: TokenType) {
+        self.tokens
+            .push(Token::new(r#type, self.current_location(), None));
+    }
+
     fn add_token_with_value(&mut self, r#type: TokenType, value: LiteralValue) {
         self.tokens
-            .push(Token::new(r#type, "", self.line, Some(value)));
+            .push(Token::new(r#type, self.current_location(), Some(value)));
     }
 }
