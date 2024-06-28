@@ -1,5 +1,5 @@
 use {
-    crate::{error, literal::LiteralValue},
+    crate::{error::RuntimeError, literal::LiteralValue},
     maplit::hashmap,
     std::collections::HashMap,
 };
@@ -28,7 +28,7 @@ impl std::fmt::Display for SourcePosition {
 
 #[derive(Debug, Clone)]
 pub struct SourceToken<'src> {
-    token: Token,
+    pub token: Token,
     source: &'src str,
 }
 
@@ -246,12 +246,13 @@ impl<'a> Scanner<'a> {
                 self.line += 1;
             }
             _ => {
-                // error(self.line, &format!("Unexpected character `{}`", c));
-                error(
-                    self.current_location(),
+                crate::error(
+                    RuntimeError::ScanError {
+                        location: self.current_location(),
+                    },
                     self.source,
                     &format!("Unexpected character `{}`", c),
-                ); // @todo error reporting
+                );
             }
         }
     }
@@ -305,11 +306,13 @@ impl<'a> Scanner<'a> {
             self.advance();
         }
         if self.is_at_end() {
-            error(
-                self.current_location(),
+            crate::error(
+                RuntimeError::ScanError {
+                    location: self.current_location(),
+                },
                 self.source,
                 &format!("Unterminated string starting at {}.", self.start),
-            ); // @todo error reporting
+            );
             return;
         }
         // The closing ".

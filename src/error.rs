@@ -1,7 +1,7 @@
 use {
     crate::{
         literal::LiteralValue,
-        scanner::{Token, TokenType},
+        scanner::{SourcePosition, Token, TokenType},
     },
     thiserror::Error,
 };
@@ -10,22 +10,24 @@ use {
 pub enum RuntimeError {
     #[error("Not an error, a function return mechanism")]
     ReturnValue(LiteralValue),
+    #[error("Scanning error")]
+    ScanError { location: SourcePosition },
     #[error("Parsing error")]
     ParseError {
         token: Token,
         expected: TokenType,
         message: String,
     },
-    #[error("undefined variable '{0}'")]
-    UndefinedVariable(String),
-    #[error("invalid assignment target. Expected variable name.")]
+    #[error("Undefined variable '{1}'")]
+    UndefinedVariable(Token, String),
+    #[error("Invalid assignment target. Expected variable name.")]
     InvalidAssignmentTarget(Token),
     #[error("Expected expression")]
-    ExpectedExpression,
+    ExpectedExpression(Token),
     #[error("Too many arguments. Expected less than 256.")]
     TooManyArguments(Token),
     #[error("Can call only functions and classes.")]
-    NotACallable,
+    NotACallable(Token),
     #[error("Expected {1} arguments but got {2}.")]
     InvalidArity(Token, usize, usize),
     #[error("Clock may have gone backwards")]

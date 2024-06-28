@@ -1,7 +1,7 @@
 #![feature(sync_unsafe_cell)]
 
 use {
-    crate::{ast_printer::AstPrinter, parser::Parser, scanner::SourcePosition},
+    crate::{ast_printer::AstPrinter, parser::Parser},
     anyhow::{anyhow, Error},
     argh::FromArgs,
     culpa::{throw, throws},
@@ -117,25 +117,7 @@ fn run(interpreter: &mut Interpreter, source: &str) {
     let ast = parser.parse();
 
     if let Err(e) = ast {
-        match e {
-            RuntimeError::ParseError {
-                token,
-                expected,
-                message,
-            } => {
-                error(token.position.clone(), source, &message);
-            }
-            e => {
-                error(
-                    SourcePosition {
-                        line: 1,
-                        span: (0..5),
-                    },
-                    source,
-                    e.to_string().as_str(),
-                );
-            }
-        }
+        error(e, source, "Parsing error");
         return;
     }
 
@@ -152,45 +134,26 @@ fn run(interpreter: &mut Interpreter, source: &str) {
     let value = interpreter.interpret(ast);
 
     if let Err(e) = value {
-        match e {
-            RuntimeError::ParseError {
-                token,
-                expected,
-                message,
-            } => {
-                let report = miette!(
-                    labels = vec![LabeledSpan::at(token.position.span, message)],
-                    help = format!("Expected {expected:?} but got {0:?}", token.r#type),
-                    "Parse error"
-                )
-                .with_source_code(source.to_string());
-
-                OUT.get().expect("Must be set at start").println(liso!(
-                    fg = red,
-                    bold,
-                    format!("{:?}", report),
-                    fg = none
-                ));
-            }
-            _ => {
-                OUT.get().expect("Must be set at start").wrapln(liso!(
-                    fg = red,
-                    bold,
-                    format!("Runtime error: {}", e),
-                    fg = none
-                ));
-            }
-        }
-
+        error(e, source, "Runtime error");
         return;
     }
 }
 
-pub fn error(location: SourcePosition, source: &str, message: &str) {
+pub fn error(runtime_error: RuntimeError, source: &str, message: &str) {
+    let (span, inner_message) = match runtime_error {
+        RuntimeError::ParseError {
+            token,
+            expected,
+            message,
+        } => (token.position.span, message),
+        RuntimeError::ScanError { location } => (location.span, message.into()),
+        _ => ((0..1), format!("{message}: {}", runtime_error)),
+    };
+
     let report = miette!(
-        labels = vec![LabeledSpan::at(location.span, message)],
+        labels = vec![LabeledSpan::at(span, inner_message)],
         // help = message,
-        "Error"
+        "Error" // @@!
     )
     .with_source_code(source.to_string());
 
@@ -199,5 +162,5 @@ pub fn error(location: SourcePosition, source: &str, message: &str) {
         bold,
         format!("{:?}", report),
         fg = none
-    ))
+    ));
 }

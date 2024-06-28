@@ -46,7 +46,10 @@ impl EnvironmentImpl {
                 .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))? // @todo miette!
                 .get(name)?;
         }
-        throw!(RuntimeError::UndefinedVariable(name.to_str().into()))
+        throw!(RuntimeError::UndefinedVariable(
+            name.token.clone(),
+            name.to_str().into()
+        ))
     }
 
     #[throws(RuntimeError)]
@@ -64,6 +67,9 @@ impl EnvironmentImpl {
                 .assign(name, value)?;
             return;
         }
-        throw!(RuntimeError::UndefinedVariable(name.to_str().into()))
+        throw!(RuntimeError::UndefinedVariable(
+            name.token.clone(),
+            name.to_str().into()
+        ))
     }
 }

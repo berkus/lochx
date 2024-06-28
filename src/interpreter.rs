@@ -295,7 +295,7 @@ impl expr::Visitor for Interpreter {
                 }
                 return callable.call(self, arguments)?;
             }
-            _ => throw!(RuntimeError::NotACallable),
+            _ => throw!(RuntimeError::NotACallable(expr.paren.clone())),
         };
     }
 }

@@ -79,16 +79,16 @@ impl Parser {
     fn declaration_with_error_handling(&mut self) -> Stmt {
         let decl = self.declaration();
         if let Err(e) = decl {
+            let token = self.peek();
             crate::error(
-                SourcePosition {
-                    // @fixme
-                    line: 1,
-                    span: (0..1),
+                RuntimeError::ParseError {
+                    token: token.clone(),
+                    expected: TokenType::EOF,
+                    message: format!("Unexpected declaration. {}", e),
                 },
                 source(),
-                e.to_string().as_str(),
+                "Declaration error",
             );
-            let token = self.peek();
             self.synchronize();
             return Stmt::ParseError { token };
         }
@@ -558,7 +558,7 @@ impl Parser {
             });
         }
         // @todo Throw ParseError with location info
-        throw!(RuntimeError::ExpectedExpression);
+        throw!(RuntimeError::ExpectedExpression(self.peek()));
     }
 
     fn match_any(&mut self, types: Vec<TokenType>) -> bool {
