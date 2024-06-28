@@ -9,7 +9,6 @@ use {
         scanner::{SourcePosition, Token, TokenType},
         stmt::{self, Stmt},
     },
-    anyhow::{anyhow, Error},
     culpa::{throw, throws},
 };
 
@@ -62,12 +61,12 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     pub fn parse(&mut self) -> Vec<Stmt> {
         self.program()?
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn program(&mut self) -> Vec<Stmt> {
         let mut statements = vec![];
         while !self.is_at_end() {
@@ -76,14 +75,15 @@ impl Parser {
         statements
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn declaration_with_error_handling(&mut self) -> Stmt {
         let decl = self.declaration();
         if let Err(e) = decl {
             crate::error(
                 SourcePosition {
+                    // @fixme
                     line: 1,
-                    span: (0..5),
+                    span: (0..1),
                 },
                 source(),
                 e.to_string().as_str(),
@@ -95,7 +95,7 @@ impl Parser {
         decl?
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn declaration(&mut self) -> Stmt {
         if self.match_any(vec![TokenType::KwFun]) {
             return self.function("function")?;
@@ -106,7 +106,7 @@ impl Parser {
         self.statement()?
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn function(&mut self, kind: &'static str) -> Stmt {
         let name = self.consume(
             TokenType::Identifier,
@@ -148,7 +148,7 @@ impl Parser {
         })
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn var_declaration(&mut self) -> Stmt {
         let name = self.consume(TokenType::Identifier, "Expected variable name.")?;
         let initializer = if self.match_any(vec![TokenType::Equal]) {
@@ -165,7 +165,7 @@ impl Parser {
         Stmt::VarDecl(stmt::VarDecl { name, initializer })
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn statement(&mut self) -> Stmt {
         if self.match_any(vec![TokenType::KwFor]) {
             return self.for_stmt()?;
@@ -188,7 +188,7 @@ impl Parser {
         self.expr_stmt()?
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn for_stmt(&mut self) -> Stmt {
         self.consume(TokenType::LeftParen, "Expected '(' after 'for'.")?;
         let initializer = if self.match_any(vec![TokenType::Semicolon]) {
@@ -249,7 +249,7 @@ impl Parser {
         body
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn if_stmt(&mut self) -> Stmt {
         self.consume(TokenType::LeftParen, "Expected '(' after 'if'.")?;
         let expr = self.expression()?;
@@ -267,14 +267,14 @@ impl Parser {
         })
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn print_stmt(&mut self) -> Stmt {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
         Stmt::Print(expr)
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn return_stmt(&mut self) -> Stmt {
         let keyword = self.previous();
         let value = if !self.check(TokenType::Semicolon) {
@@ -288,7 +288,7 @@ impl Parser {
         Stmt::Return(stmt::Return { keyword, value })
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn while_stmt(&mut self) -> Stmt {
         self.consume(TokenType::LeftParen, "Expected '(' after 'while'.")?;
         let condition = self.expression()?;
@@ -300,7 +300,7 @@ impl Parser {
         Stmt::While(stmt::WhileStmt { condition, body })
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn expr_stmt(&mut self) -> Stmt {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
@@ -308,13 +308,13 @@ impl Parser {
     }
 
     // Wrap block into the block statement.
-    #[throws]
+    #[throws(RuntimeError)]
     fn block_stmt(&mut self) -> Stmt {
         Stmt::Block(self.block()?)
     }
 
     // Shared block parser, will be reused for function bodies.
-    #[throws]
+    #[throws(RuntimeError)]
     fn block(&mut self) -> Vec<Stmt> {
         let mut stmts = vec![];
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
@@ -324,12 +324,12 @@ impl Parser {
         stmts
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn expression(&mut self) -> Expr {
         self.assignment()?
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn assignment(&mut self) -> Expr {
         let expr = self.logic_or()?;
         if self.match_any(vec![TokenType::Equal]) {
@@ -350,7 +350,7 @@ impl Parser {
         expr
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn logic_or(&mut self) -> Expr {
         let mut expr = self.logic_and()?;
 
@@ -367,7 +367,7 @@ impl Parser {
         expr
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn logic_and(&mut self) -> Expr {
         let mut expr = self.equality()?;
 
@@ -384,7 +384,7 @@ impl Parser {
         expr
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn equality(&mut self) -> Expr {
         let mut expr = self.comparison()?;
 
@@ -401,7 +401,7 @@ impl Parser {
         expr
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn comparison(&mut self) -> Expr {
         let mut expr = self.term()?;
 
@@ -423,7 +423,7 @@ impl Parser {
         expr
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn term(&mut self) -> Expr {
         let mut expr = self.factor()?;
 
@@ -440,7 +440,7 @@ impl Parser {
         expr
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn factor(&mut self) -> Expr {
         let mut expr = self.unary()?;
 
@@ -457,7 +457,7 @@ impl Parser {
         expr
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn unary(&mut self) -> Expr {
         if self.match_any(vec![TokenType::Bang, TokenType::Minus]) {
             let op = self.previous();
@@ -471,7 +471,7 @@ impl Parser {
         self.call()?
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn call(&mut self) -> Expr {
         let mut expr = self.primary()?;
 
@@ -486,7 +486,7 @@ impl Parser {
         expr
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn finish_call(&mut self, callee: Expr) -> Expr {
         let mut arguments = vec![];
         if !self.check(TokenType::RightParen) {
@@ -509,7 +509,7 @@ impl Parser {
         })
     }
 
-    #[throws]
+    #[throws(RuntimeError)]
     fn primary(&mut self) -> Expr {
         if self.match_any(vec![TokenType::KwFalse]) {
             return Expr::Literal(expr::Literal {
@@ -571,18 +571,16 @@ impl Parser {
         false
     }
 
-    // @todo Throw ParseError with location info
-    #[throws]
+    #[throws(RuntimeError)]
     fn consume(&mut self, t: TokenType, message: &str) -> Token {
         if self.check(t) {
             return self.advance();
         }
-        throw!(anyhow!(
-            "{} (expected {:?}, got {})",
-            message.to_string(),
-            t,
-            self.peek()
-        ));
+        throw!(RuntimeError::ParseError {
+            token: self.peek(),
+            expected: t,
+            message: message.into()
+        });
     }
 
     /// Synchronize parser stream to the next non-error token.
