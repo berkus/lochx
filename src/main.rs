@@ -117,14 +117,25 @@ fn run(interpreter: &mut Interpreter, source: &str) {
     let ast = parser.parse();
 
     if let Err(e) = ast {
-        error(
-            SourcePosition {
-                line: 1,
-                span: (0..5),
-            },
-            source,
-            e.to_string().as_str(),
-        );
+        match e {
+            RuntimeError::ParseError {
+                token,
+                expected,
+                message,
+            } => {
+                error(token.position.clone(), source, &message);
+            }
+            e => {
+                error(
+                    SourcePosition {
+                        line: 1,
+                        span: (0..5),
+                    },
+                    source,
+                    e.to_string().as_str(),
+                );
+            }
+        }
         return;
     }
 

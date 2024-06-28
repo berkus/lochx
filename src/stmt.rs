@@ -44,7 +44,7 @@ pub struct WhileStmt {
 
 /// Statements visitor.
 pub trait Visitor {
-    type ReturnType;
+    type ReturnType: Default;
 
     #[throws(RuntimeError)]
     fn visit_print_stmt(&mut self, stmt: &Expr) -> Self::ReturnType;
@@ -83,8 +83,8 @@ impl Acceptor for Stmt {
             Stmt::FunctionDecl(f) => visitor.visit_fundecl_stmt(f)?,
             Stmt::Return(r) => visitor.visit_return_stmt(r)?,
             Stmt::ParseError { token } => {
-                crate::error(token.position.clone(), source(), "Parse error");
-                todo!()
+                // crate::error(token.position.clone(), source(), "Parse error");
+                V::ReturnType::default()
             }
         }
     }
