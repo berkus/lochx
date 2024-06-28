@@ -92,6 +92,7 @@ impl stmt::Visitor for Interpreter {
             .write()
             .map_err(|_| {
                 RuntimeError::EnvironmentError(anyhow!("write lock in visit_vardecl_stmt"))
+                // @todo miette!
             })?
             .define(stmt.name.lexeme(source()), value);
     }
@@ -133,6 +134,7 @@ impl stmt::Visitor for Interpreter {
             .write()
             .map_err(|_| {
                 RuntimeError::EnvironmentError(anyhow!("write lock in visit_fundecl_stmt"))
+                // @todo miette!
             })?
             .define(
                 stmt.name.lexeme(source()),

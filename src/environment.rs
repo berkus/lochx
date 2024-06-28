@@ -43,7 +43,7 @@ impl EnvironmentImpl {
         if let Some(parent) = &self.enclosing {
             return parent
                 .read()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))?
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))? // @todo miette!
                 .get(name)?;
         }
         throw!(RuntimeError::UndefinedVariable(name.to_str().into()))
@@ -60,7 +60,7 @@ impl EnvironmentImpl {
         if let Some(parent) = &self.enclosing {
             parent
                 .write()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign")))?
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign")))? // @todo miette!
                 .assign(name, value)?;
             return;
         }
