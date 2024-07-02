@@ -1,4 +1,5 @@
 #![feature(sync_unsafe_cell)]
+#![feature(let_chains)]
 
 use {
     crate::{ast_printer::AstPrinter, parser::Parser},
@@ -9,6 +10,7 @@ use {
     interpreter::Interpreter,
     liso::{liso, OutputOnly, Response},
     miette::{LabeledSpan, MietteDiagnostic, Report},
+    sema::resolver::Resolver,
     std::sync::OnceLock,
 };
 
@@ -22,6 +24,7 @@ mod literal;
 mod parser;
 mod runtime;
 mod scanner;
+mod sema;
 mod stmt;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
@@ -133,6 +136,14 @@ fn run(interpreter: &mut Interpreter, source: &str, scan_offset: usize) {
         fg = none
     ));
 
+    let mut resolver = Resolver::new(interpreter);
+    let resolved = resolver.resolve(&ast);
+
+    if let Err(e) = resolved {
+        error(e, "Resolution error");
+        return;
+    }
+
     let value = interpreter.interpret(ast);
 
     if let Err(e) = value {
@@ -145,7 +156,7 @@ pub fn error(runtime_error: RuntimeError, message: &str) {
     let (span, inner_message) = match runtime_error {
         RuntimeError::ParseError {
             token,
-            expected,
+            expected: _,
             message,
         } => (token.position.span, message),
         RuntimeError::ScanError { location } => (location.span, "Here".into()),

@@ -12,11 +12,13 @@ use {
     anyhow::anyhow,
     culpa::{throw, throws},
     liso::{liso, OutputOnly},
+    std::collections::HashMap,
 };
 
 pub struct Interpreter {
     out: OutputOnly,
     pub(super) globals: Environment,
+    locals: HashMap<Token, usize>,
     current_env: Environment,
 }
 
@@ -35,6 +37,7 @@ impl Interpreter {
         Self {
             out,
             globals: env.clone(),
+            locals: HashMap::new(),
             current_env: env,
         }
     }
@@ -44,6 +47,13 @@ impl Interpreter {
         for stmt in statements {
             self.execute(&stmt)?;
         }
+    }
+
+    pub fn resolve(&mut self, token: &Token, index: usize) {
+        self.locals
+            .entry(token.clone())
+            .and_modify(|v| *v = index)
+            .or_insert(index);
     }
 
     #[throws(RuntimeError)]
@@ -67,6 +77,26 @@ impl Interpreter {
     #[throws(RuntimeError)]
     fn evaluate(&mut self, expr: &Expr) -> LiteralValue {
         expr.accept(self)?
+    }
+
+    #[throws(RuntimeError)]
+    fn look_up_variable(&mut self, token: &Token) -> LiteralValue {
+        let distance = self.locals.get(token);
+        if let Some(distance) = distance {
+            self.current_env
+                .read()
+                .map_err(|_| {
+                    RuntimeError::EnvironmentError(anyhow!("read lock in look_up_variable"))
+                })?
+                .get_at(*distance, SourceToken::new(token.clone(), source()))?
+        } else {
+            self.globals
+                .read()
+                .map_err(|_| {
+                    RuntimeError::EnvironmentError(anyhow!("read lock in look_up_variable"))
+                })?
+                .get(SourceToken::new(token.clone(), source()))?
+        }
     }
 }
 
@@ -234,22 +264,37 @@ impl expr::Visitor for Interpreter {
     }
 
     #[throws(RuntimeError)]
-    fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
-        self.current_env
-            .read()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in visit_var_expr")))?
-            .get(SourceToken::new(expr.name.clone(), source()))?
+    fn visit_var_expr(&mut self, expr: &expr::Var) -> Self::ReturnType {
+        self.look_up_variable(&expr.name)?
     }
 
     #[throws(RuntimeError)]
     fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Self::ReturnType {
         let value = self.evaluate(expr.value.as_ref())?;
-        self.current_env
-            .write()
-            .map_err(|_| {
-                RuntimeError::EnvironmentError(anyhow!("write lock in visit_assign_expr"))
-            })?
-            .assign(SourceToken::new(expr.name.clone(), source()), value.clone())?;
+        let distance = self.locals.get(&expr.name);
+        if let Some(d) = distance {
+            self.current_env
+                .write()
+                .map_err(|_| {
+                    RuntimeError::EnvironmentError(anyhow!(
+                        "write lock in visit_assign_expr.current_env"
+                    ))
+                })?
+                .assign_at(
+                    *d,
+                    SourceToken::new(expr.name.clone(), source()),
+                    value.clone(),
+                )?;
+        } else {
+            self.globals
+                .write()
+                .map_err(|_| {
+                    RuntimeError::EnvironmentError(anyhow!(
+                        "write lock in visit_assign_expr.globals"
+                    ))
+                })?
+                .assign(SourceToken::new(expr.name.clone(), source()), value.clone())?;
+        }
         value
     }
 

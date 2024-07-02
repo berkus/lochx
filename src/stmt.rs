@@ -76,12 +76,12 @@ impl Acceptor for Stmt {
         match self {
             Stmt::Print(e) => visitor.visit_print_stmt(e)?,
             Stmt::Expression(e) => visitor.visit_expression_stmt(e)?,
-            Stmt::If(i) => visitor.visit_if_stmt(i)?,
-            Stmt::While(w) => visitor.visit_while_stmt(w)?,
-            Stmt::VarDecl(d) => visitor.visit_vardecl_stmt(d)?,
+            Stmt::If(i) => i.accept(visitor)?,
+            Stmt::While(w) => w.accept(visitor)?,
+            Stmt::VarDecl(d) => d.accept(visitor)?,
             Stmt::Block(b) => visitor.visit_block_stmt(b)?,
-            Stmt::FunctionDecl(f) => visitor.visit_fundecl_stmt(f)?,
-            Stmt::Return(r) => visitor.visit_return_stmt(r)?,
+            Stmt::FunctionDecl(f) => f.accept(visitor)?,
+            Stmt::Return(r) => r.accept(visitor)?,
             Stmt::ParseError { token } => {
                 crate::error(
                     RuntimeError::ParseError {
@@ -94,5 +94,36 @@ impl Acceptor for Stmt {
                 V::ReturnType::default()
             }
         }
+    }
+}
+
+impl Acceptor for Return {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_return_stmt(self)?
+    }
+}
+impl Acceptor for VarDecl {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_vardecl_stmt(self)?
+    }
+}
+impl Acceptor for IfStmt {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_if_stmt(self)?
+    }
+}
+impl Acceptor for WhileStmt {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_while_stmt(self)?
+    }
+}
+impl Acceptor for Function {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_fundecl_stmt(self)?
     }
 }

@@ -107,3 +107,13 @@ fun makeCounter() {
 var counter = makeCounter();
 counter(); // "counter 1".
 counter(); // "counter 2".
+
+var a = "global";
+{
+    fun showA() {
+        print a;
+    }
+    showA();
+    var a = "block";
+    showA(); // must be still "global"!
+}

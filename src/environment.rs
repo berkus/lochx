@@ -40,6 +40,7 @@ impl EnvironmentImpl {
         if self.values.contains_key(name.to_str()) {
             return self.values.get(name.to_str()).unwrap().clone();
         }
+        // @todo Use ancestor(distance=1):
         if let Some(parent) = &self.enclosing {
             return parent
                 .read()
@@ -53,6 +54,17 @@ impl EnvironmentImpl {
     }
 
     #[throws(RuntimeError)]
+    pub fn get_at(&self, distance: usize, name: SourceToken) -> LiteralValue {
+        if distance == 0 {
+            return self.get(name)?;
+        }
+        self.ancestor(distance)?
+            .read()
+            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get_at")))? // @todo miette!
+            .get(name)?
+    }
+
+    #[throws(RuntimeError)]
     pub fn assign(&mut self, name: SourceToken, value: LiteralValue) {
         if self.values.contains_key(name.to_str()) {
             self.values
@@ -60,6 +72,7 @@ impl EnvironmentImpl {
                 .and_modify(|e| *e = value);
             return;
         }
+        // @todo Use ancestor(distance=1):
         if let Some(parent) = &self.enclosing {
             parent
                 .write()
@@ -71,5 +84,33 @@ impl EnvironmentImpl {
             name.token.clone(),
             name.to_str().into()
         ))
+    }
+
+    #[throws(RuntimeError)]
+    pub fn assign_at(&mut self, distance: usize, name: SourceToken, value: LiteralValue) {
+        if distance == 0 {
+            return self.assign(name, value)?;
+        }
+        self.ancestor(distance)?
+            .write()
+            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign_at")))? // @todo miette!
+            .assign(name, value)?;
+    }
+
+    #[throws(RuntimeError)]
+    fn ancestor(&self, distance: usize) -> Environment {
+        let mut parent = self.enclosing.clone();
+        for _ in distance..1 {
+            if let Some(p) = parent {
+                let p = p.read().map_err(|_| {
+                    RuntimeError::EnvironmentError(anyhow!("read lock in ancestor"))
+                })?; // @todo miette!
+                parent = p.enclosing.clone();
+            }
+        }
+        if parent.is_none() {
+            panic!("Environment stacks misaligned");
+        }
+        parent.unwrap()
     }
 }

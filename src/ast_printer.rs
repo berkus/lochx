@@ -155,7 +155,7 @@ impl expr::Visitor for AstPrinter {
     }
 
     #[throws(RuntimeError)]
-    fn visit_var_expr(&self, expr: &expr::Var) -> Self::ReturnType {
+    fn visit_var_expr(&mut self, expr: &expr::Var) -> Self::ReturnType {
         format!("(var {})", expr.name)
     }
 

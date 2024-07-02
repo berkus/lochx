@@ -4,7 +4,7 @@ use {
     std::collections::HashMap,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SourcePosition {
     pub line: usize,
     pub span: std::ops::Range<usize>,
@@ -37,6 +37,22 @@ pub struct Token {
     pub r#type: TokenType,
     pub position: SourcePosition,
     literal: Option<LiteralValue>,
+}
+
+// @todo identify by absolute position in source_map
+impl std::hash::Hash for Token {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_usize(self.position.span.start);
+        state.write_usize(self.position.span.end);
+    }
+}
+
+impl Eq for Token {}
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        self.position == other.position
+    }
 }
 
 impl Token {
