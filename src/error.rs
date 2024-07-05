@@ -11,7 +11,7 @@ pub enum RuntimeError {
     #[error("Not an error, a function return mechanism")]
     ReturnValue(LiteralValue),
     #[error("Return statement at top level")]
-    TopLevelReturn(Token),
+    TopLevelReturn(Token, &'static str), // note
     #[error("Scanning error")]
     ScanError { location: SourcePosition },
     #[error("Parsing error")]
@@ -23,9 +23,9 @@ pub enum RuntimeError {
     #[error("Undefined variable '{1}'")]
     UndefinedVariable(Token, String),
     #[error("Duplicate declaration")]
-    DuplicateDeclaration(Token),
+    DuplicateDeclaration(Token, &'static str), // note
     #[error("Invalid assignment target. Expected variable name.")]
-    InvalidAssignmentTarget(Token),
+    InvalidAssignmentTarget(Token, &'static str), // note
     #[error("Expected expression")]
     ExpectedExpression(Token),
     #[error("Too many arguments. Expected less than 256.")]

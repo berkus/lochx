@@ -16,7 +16,7 @@ use {
         Interpreter,
     },
     culpa::{throw, throws},
-    std::collections::HashMap,
+    std::collections::{hash_map::Entry, HashMap},
 };
 
 type Scope = HashMap<String, bool>;
@@ -78,7 +78,7 @@ impl<'interp> Resolver<'interp> {
         self.current_function = ftype;
         self.begin_scope();
         for param in &func.parameters {
-            self.declare(param);
+            self.declare(param)?;
             self.define(param);
         }
         self.resolve_stmts(&func.body)?;
@@ -94,18 +94,20 @@ impl<'interp> Resolver<'interp> {
         self.scopes.pop();
     }
 
+    #[throws(RuntimeError)]
     fn declare(&mut self, name: &Token) {
         match self.scopes.last_mut() {
-            Some(x) => {
-                x.entry(name.lexeme(runtime::source()))
-                    .and_modify(|_| {
-                        crate::error(
-                            RuntimeError::DuplicateDeclaration(name.clone()),
-                            "Already a variable with this name in this scope",
-                        ) // @todo return error from the resolve process here to abort execution
-                    })
-                    .or_insert(false);
-            }
+            Some(x) => match x.entry(name.lexeme(runtime::source())) {
+                Entry::Occupied(_) => {
+                    throw!(RuntimeError::DuplicateDeclaration(
+                        name.clone(),
+                        "Already a variable with this name in this scope",
+                    ));
+                }
+                Entry::Vacant(e) => {
+                    e.insert(false);
+                }
+            },
             None => {}
         }
     }
@@ -163,10 +165,10 @@ impl expr::Visitor for Resolver<'_> {
         if let Some(item) = self.scopes.last() {
             if let Some(entry) = item.get(&expr.name.lexeme(runtime::source())) {
                 if *entry == false {
-                    crate::error(
-                        RuntimeError::InvalidAssignmentTarget(expr.name.clone()),
+                    throw!(RuntimeError::InvalidAssignmentTarget(
+                        expr.name.clone(),
                         "Can't read local variable in its own initializer",
-                    );
+                    ));
                 }
             }
         }
@@ -213,14 +215,14 @@ impl stmt::Visitor for Resolver<'_> {
 
     #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &stmt::VarDecl) -> Self::ReturnType {
-        self.declare(&stmt.name);
+        self.declare(&stmt.name)?;
         self.resolve_expr(&stmt.initializer)?;
         self.define(&stmt.name);
     }
 
     #[throws(RuntimeError)]
     fn visit_fundecl_stmt(&mut self, stmt: &callable::Function) -> Self::ReturnType {
-        self.declare(&stmt.name);
+        self.declare(&stmt.name)?;
         self.define(&stmt.name);
         self.resolve_function(stmt, FunctionType::Function)?;
     }
@@ -235,11 +237,10 @@ impl stmt::Visitor for Resolver<'_> {
     #[throws(RuntimeError)]
     fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Self::ReturnType {
         if self.current_function == FunctionType::None {
-            crate::error(
-                RuntimeError::TopLevelReturn(stmt.keyword.clone()),
-                "Can't return from top-level code",
-            );
-            throw!(RuntimeError::TopLevelReturn(stmt.keyword.clone()));
+            throw!(RuntimeError::TopLevelReturn(
+                stmt.keyword.clone(),
+                "Can't return from top-level code"
+            ));
         }
         self.resolve_expr(&stmt.value)?;
     }

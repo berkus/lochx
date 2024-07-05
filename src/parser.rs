@@ -341,7 +341,10 @@ impl Parser {
                     })
                 }
                 _ => {
-                    throw!(RuntimeError::InvalidAssignmentTarget(equals))
+                    throw!(RuntimeError::InvalidAssignmentTarget(
+                        equals,
+                        "Can't assign to non-variable"
+                    ))
                 }
             }
         }

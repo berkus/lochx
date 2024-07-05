@@ -153,44 +153,68 @@ fn run(interpreter: &mut Interpreter, source: &str, scan_offset: usize) {
 }
 
 pub fn error(runtime_error: RuntimeError, message: &str) {
-    let (span, inner_message) = match runtime_error {
+    let (span, inner_message, note) = match runtime_error {
         RuntimeError::ParseError {
             token,
-            expected: _,
+            expected,
             message,
-        } => (token.position.span, message),
-        RuntimeError::ScanError { location } => (location.span, "Here".into()),
-        RuntimeError::TopLevelReturn(ref t) => {
-            (t.position.span.clone(), format!("{}", runtime_error))
-        }
-        RuntimeError::UndefinedVariable(ref t, _) => {
-            (t.position.span.clone(), format!("{}", runtime_error))
-        }
-        RuntimeError::DuplicateDeclaration(ref t) => {
-            (t.position.span.clone(), format!("{}", runtime_error))
-        }
-        RuntimeError::InvalidAssignmentTarget(ref t) => {
-            (t.position.span.clone(), format!("{}", runtime_error))
-        }
-        RuntimeError::ExpectedExpression(ref t) => {
-            (t.position.span.clone(), format!("{}", runtime_error))
-        }
-        RuntimeError::TooManyArguments(ref t) => {
-            (t.position.span.clone(), format!("{}", runtime_error))
-        }
-        RuntimeError::NotACallable(ref t) => {
-            (t.position.span.clone(), format!("{}", runtime_error))
-        }
-        RuntimeError::InvalidArity(ref t, _, _) => {
-            (t.position.span.clone(), format!("{}", runtime_error))
-        }
-        _ => ((0..0), format!("{message}: {}", runtime_error)), // @todo skip label if no span
+        } => (
+            token.position.span,
+            message,
+            format!("Expected {expected:?}"),
+        ),
+        RuntimeError::ScanError { location } => (location.span, "Here".into(), "".into()),
+        RuntimeError::TopLevelReturn(ref t, note) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            note.into(),
+        ),
+        RuntimeError::UndefinedVariable(ref t, _) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            "".into(),
+        ),
+        RuntimeError::DuplicateDeclaration(ref t, note) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            note.into(),
+        ),
+        RuntimeError::InvalidAssignmentTarget(ref t, note) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            note.into(),
+        ),
+        RuntimeError::ExpectedExpression(ref t) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            "".into(),
+        ),
+        RuntimeError::TooManyArguments(ref t) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            "".into(),
+        ),
+        RuntimeError::NotACallable(ref t) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            "".into(),
+        ),
+        RuntimeError::InvalidArity(ref t, _, _) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            "".into(),
+        ),
+        _ => ((0..0), format!("{message}: {}", runtime_error), "".into()), // @todo skip label if no span
     };
 
-    let report = Report::new(
-        MietteDiagnostic::new(message).with_label(LabeledSpan::at(span, inner_message)),
-    )
-    .with_source_code(runtime::source());
+    let diag = MietteDiagnostic::new(message).with_label(LabeledSpan::at(span, inner_message));
+    let diag = if note.is_empty() {
+        diag
+    } else {
+        diag.with_help(note)
+    };
+
+    let report = Report::new(diag).with_source_code(runtime::source());
 
     OUT.get().expect("Must be set at start").println(liso!(
         fg = red,
