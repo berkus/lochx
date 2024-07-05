@@ -10,6 +10,8 @@ use {
 pub enum RuntimeError {
     #[error("Not an error, a function return mechanism")]
     ReturnValue(LiteralValue),
+    #[error("Return statement at top level")]
+    TopLevelReturn(Token),
     #[error("Scanning error")]
     ScanError { location: SourcePosition },
     #[error("Parsing error")]

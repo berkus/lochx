@@ -15,15 +15,22 @@ use {
         stmt::{self, Acceptor as _},
         Interpreter,
     },
-    culpa::throws,
+    culpa::{throw, throws},
     std::collections::HashMap,
 };
 
 type Scope = HashMap<String, bool>;
 
+#[derive(Copy, Clone, PartialEq)]
+enum FunctionType {
+    None,
+    Function,
+}
+
 pub struct Resolver<'interp> {
     scopes: Vec<Scope>,
     interpreter: &'interp mut Interpreter,
+    current_function: FunctionType,
 }
 
 impl<'interp> Resolver<'interp> {
@@ -31,6 +38,7 @@ impl<'interp> Resolver<'interp> {
         Self {
             scopes: vec![],
             interpreter,
+            current_function: FunctionType::None,
         }
     }
 
@@ -65,7 +73,9 @@ impl<'interp> Resolver<'interp> {
     }
 
     #[throws(RuntimeError)]
-    fn resolve_function(&mut self, func: &callable::Function) {
+    fn resolve_function(&mut self, func: &callable::Function, ftype: FunctionType) {
+        let enclosing_function = self.current_function;
+        self.current_function = ftype;
         self.begin_scope();
         for param in &func.parameters {
             self.declare(param);
@@ -73,6 +83,7 @@ impl<'interp> Resolver<'interp> {
         }
         self.resolve_stmts(&func.body)?;
         self.end_scope();
+        self.current_function = enclosing_function;
     }
 
     fn begin_scope(&mut self) {
@@ -91,7 +102,7 @@ impl<'interp> Resolver<'interp> {
                         crate::error(
                             RuntimeError::DuplicateDeclaration(name.clone()),
                             "Already a variable with this name in this scope",
-                        )
+                        ) // @todo return error from the resolve process here to abort execution
                     })
                     .or_insert(false);
             }
@@ -211,7 +222,7 @@ impl stmt::Visitor for Resolver<'_> {
     fn visit_fundecl_stmt(&mut self, stmt: &callable::Function) -> Self::ReturnType {
         self.declare(&stmt.name);
         self.define(&stmt.name);
-        self.resolve_function(stmt)?;
+        self.resolve_function(stmt, FunctionType::Function)?;
     }
 
     #[throws(RuntimeError)]
@@ -223,6 +234,13 @@ impl stmt::Visitor for Resolver<'_> {
 
     #[throws(RuntimeError)]
     fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Self::ReturnType {
+        if self.current_function == FunctionType::None {
+            crate::error(
+                RuntimeError::TopLevelReturn(stmt.keyword.clone()),
+                "Can't return from top-level code",
+            );
+            throw!(RuntimeError::TopLevelReturn(stmt.keyword.clone()));
+        }
         self.resolve_expr(&stmt.value)?;
     }
 }

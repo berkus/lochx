@@ -160,6 +160,9 @@ pub fn error(runtime_error: RuntimeError, message: &str) {
             message,
         } => (token.position.span, message),
         RuntimeError::ScanError { location } => (location.span, "Here".into()),
+        RuntimeError::TopLevelReturn(ref t) => {
+            (t.position.span.clone(), format!("{}", runtime_error))
+        }
         RuntimeError::UndefinedVariable(ref t, _) => {
             (t.position.span.clone(), format!("{}", runtime_error))
         }
