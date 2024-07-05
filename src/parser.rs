@@ -19,8 +19,11 @@ pub struct Parser {
 /// Recursive descent parser for the Lox grammar:
 /// ```text
 /// program        → declaration* EOF ;
-/// declaration    → varDecl
+/// declaration    → funDecl
+///                | varDecl
 ///                | statement ;
+/// funDecl        → "fun" function ;
+/// function       → IDENTIFIER "(" parameters? ")" block ;
 /// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 /// statement      → exprStmt
 ///                | forStmt
@@ -50,6 +53,7 @@ pub struct Parser {
 /// factor         → unary ( ( "/" | "*" ) unary )* ;
 /// unary          → ( "!" | "-" ) unary | call ;
 /// call           → primary ( "(" arguments? ")" )* ;
+/// parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 /// arguments      → expression ( "," expression )* ;
 /// primary        → NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil"
 ///                | "(" expression ")" ;
