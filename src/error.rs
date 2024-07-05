@@ -20,6 +20,8 @@ pub enum RuntimeError {
     },
     #[error("Undefined variable '{1}'")]
     UndefinedVariable(Token, String),
+    #[error("Duplicate declaration")]
+    DuplicateDeclaration(Token),
     #[error("Invalid assignment target. Expected variable name.")]
     InvalidAssignmentTarget(Token),
     #[error("Expected expression")]

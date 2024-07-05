@@ -87,7 +87,12 @@ impl<'interp> Resolver<'interp> {
         match self.scopes.last_mut() {
             Some(x) => {
                 x.entry(name.lexeme(runtime::source()))
-                    .and_modify(|v| *v = false)
+                    .and_modify(|_| {
+                        crate::error(
+                            RuntimeError::DuplicateDeclaration(name.clone()),
+                            "Already a variable with this name in this scope",
+                        )
+                    })
                     .or_insert(false);
             }
             None => {}

@@ -163,6 +163,9 @@ pub fn error(runtime_error: RuntimeError, message: &str) {
         RuntimeError::UndefinedVariable(ref t, _) => {
             (t.position.span.clone(), format!("{}", runtime_error))
         }
+        RuntimeError::DuplicateDeclaration(ref t) => {
+            (t.position.span.clone(), format!("{}", runtime_error))
+        }
         RuntimeError::InvalidAssignmentTarget(ref t) => {
             (t.position.span.clone(), format!("{}", runtime_error))
         }
