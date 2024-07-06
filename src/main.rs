@@ -15,17 +15,16 @@ use {
 };
 
 mod ast_printer;
-mod callable;
 mod environment;
 mod error;
-mod expr;
 mod interpreter;
-mod literal;
 mod parser;
 mod runtime;
 mod scanner;
 mod sema;
-mod stmt;
+mod types;
+
+pub use types::{callable, expr, literal, stmt};
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
