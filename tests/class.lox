@@ -1,0 +1,19 @@
+class Breakfast {
+    cook() {
+        print "Eggs a-frying...";
+    }
+    serve(who) {
+        print "Enjoy your breakfast, " + who + "!";
+    }
+}
+
+print Breakfast;
+
+var b = Breakfast();
+print b;
+
+b.a = "Hello!";
+print b.a;
+
+//b.cook();
+//b.serve("reader");

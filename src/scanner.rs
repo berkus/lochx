@@ -1,5 +1,5 @@
 use {
-    crate::{error::RuntimeError, literal::LiteralValue},
+    crate::{error::RuntimeError, literal::LiteralValue, runtime},
     maplit::hashmap,
     std::collections::HashMap,
 };
@@ -32,11 +32,23 @@ impl<'src> SourceToken<'src> {
     }
 }
 
+impl std::fmt::Display for SourceToken<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_str())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Token {
     pub r#type: TokenType,
     pub position: SourcePosition,
     literal: Option<LiteralValue>,
+}
+
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", SourceToken::new(self.clone(), runtime::source()))
+    }
 }
 
 // @todo identify by absolute position in source_map
@@ -80,12 +92,6 @@ impl Token {
             Some(LiteralValue::Str(ref s)) => Some(s.clone()),
             _ => None,
         }
-    }
-}
-
-impl std::fmt::Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?} {}", self.r#type, self.position)
     }
 }
 

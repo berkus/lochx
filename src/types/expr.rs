@@ -14,6 +14,8 @@ pub enum Expr {
     Literal(Literal),
     Variable(Var),
     Call(Call),
+    Get(Getter),
+    Set(Setter),
 }
 
 #[derive(Debug, Clone)]
@@ -64,6 +66,19 @@ pub struct Call {
     pub arguments: Vec<Expr>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Getter {
+    pub name: Token,
+    pub object: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Setter {
+    pub name: Token,
+    pub object: Box<Expr>,
+    pub value: Box<Expr>,
+}
+
 /// Expressions visitor.
 pub trait Visitor {
     type ReturnType;
@@ -85,6 +100,10 @@ pub trait Visitor {
     fn visit_var_expr(&mut self, expr: &Var) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_call_expr(&mut self, expr: &Call) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_get_expr(&mut self, expr: &Getter) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_set_expr(&mut self, expr: &Setter) -> Self::ReturnType;
 }
 
 /// Expression visitor acceptor.
@@ -105,6 +124,8 @@ impl Acceptor for Expr {
             Expr::Literal(e) => e.accept(visitor)?,
             Expr::Variable(e) => e.accept(visitor)?,
             Expr::Call(e) => e.accept(visitor)?,
+            Expr::Get(p) => p.accept(visitor)?,
+            Expr::Set(p) => p.accept(visitor)?,
         }
     }
 }
@@ -162,5 +183,19 @@ impl Acceptor for Call {
     #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_call_expr(self)?
+    }
+}
+
+impl Acceptor for Getter {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_get_expr(self)?
+    }
+}
+
+impl Acceptor for Setter {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_set_expr(self)?
     }
 }

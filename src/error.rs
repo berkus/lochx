@@ -34,6 +34,10 @@ pub enum RuntimeError {
     NotACallable(Token),
     #[error("Expected {1} arguments but got {2}.")]
     InvalidArity(Token, usize, usize),
+    #[error("Invalid field/property access.")]
+    InvalidPropertyAccess(Token, &'static str), // note
+    #[error("Property {0} is undefined.")]
+    UndefinedProperty(Token),
     #[error("Clock may have gone backwards")]
     ClockBackwards,
     #[error("Cannot obtain the environment due to {0}.")]

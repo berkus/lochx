@@ -19,9 +19,11 @@ pub struct Parser {
 /// Recursive descent parser for the Lox grammar:
 /// ```text
 /// program        → declaration* EOF ;
-/// declaration    → funDecl
+/// declaration    → classDecl
+///                | funDecl
 ///                | varDecl
 ///                | statement ;
+/// classDecl      → "class" IDENTIFIER "{" function* "}" ;
 /// funDecl        → "fun" function ;
 /// function       → IDENTIFIER "(" parameters? ")" block ;
 /// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
@@ -43,7 +45,7 @@ pub struct Parser {
 /// whileStmt      → "while" "(" expression ")" statement ;
 /// block          → "{" declaration* "}" ;
 /// expression     → assignment ;
-/// assignment     → IDENTIFIER "=" assignment
+/// assignment     → ( call "." )? IDENTIFIER "=" assignment
 ///                | logic_or ;
 /// logic_or       → logic_and ( "or" logic_and )* ;
 /// logic_and      → equality ( "and" equality )* ;
@@ -52,7 +54,7 @@ pub struct Parser {
 /// term           → factor ( ( "-" | "+" ) factor )* ;
 /// factor         → unary ( ( "/" | "*" ) unary )* ;
 /// unary          → ( "!" | "-" ) unary | call ;
-/// call           → primary ( "(" arguments? ")" )* ;
+/// call           → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
 /// parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 /// arguments      → expression ( "," expression )* ;
 /// primary        → NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil"
@@ -99,6 +101,9 @@ impl Parser {
 
     #[throws(RuntimeError)]
     fn declaration(&mut self) -> Stmt {
+        if self.match_any(vec![TokenType::KwClass]) {
+            return self.class_declaration()?;
+        }
         if self.match_any(vec![TokenType::KwFun]) {
             return self.function("function")?;
         }
@@ -106,6 +111,18 @@ impl Parser {
             return self.var_declaration()?;
         }
         self.statement()?
+    }
+
+    #[throws(RuntimeError)]
+    fn class_declaration(&mut self) -> Stmt {
+        let name = self.consume(TokenType::Identifier, "Expect class name.")?;
+        self.consume(TokenType::LeftBrace, "Expect '{' before class body.")?;
+        let mut methods = vec![];
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            methods.push(self.function("method")?);
+        }
+        self.consume(TokenType::RightBrace, "Expect '}' after class body.")?;
+        Stmt::Class(stmt::Class { name, methods })
     }
 
     #[throws(RuntimeError)]
@@ -344,6 +361,13 @@ impl Parser {
                         value: Box::new(value),
                     })
                 }
+                Expr::Get(expr::Getter { name, object }) => {
+                    return Expr::Set(expr::Setter {
+                        name,
+                        object,
+                        value: Box::new(value),
+                    })
+                }
                 _ => {
                     throw!(RuntimeError::InvalidAssignmentTarget(
                         equals,
@@ -483,6 +507,12 @@ impl Parser {
         loop {
             if self.match_any(vec![TokenType::LeftParen]) {
                 expr = self.finish_call(expr)?;
+            } else if self.match_any(vec![TokenType::Dot]) {
+                let name = self.consume(TokenType::Identifier, "Expect property name after '.'")?;
+                expr = Expr::Get(expr::Getter {
+                    name,
+                    object: Box::new(expr),
+                });
             } else {
                 break;
             }

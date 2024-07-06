@@ -1,6 +1,7 @@
 use {
     crate::{
         callable::{self, Callable},
+        class,
         environment::{Environment, EnvironmentImpl},
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
@@ -176,6 +177,28 @@ impl stmt::Visitor for Interpreter {
     fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Self::ReturnType {
         throw!(RuntimeError::ReturnValue(self.evaluate(&stmt.value)?))
     }
+
+    #[throws(RuntimeError)]
+    fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Self::ReturnType {
+        self.current_env
+            .write()
+            .map_err(|_| {
+                RuntimeError::EnvironmentError(anyhow!("write lock in visit_class_stmt"))
+                // @todo miette!
+            })?
+            .define(stmt.name.lexeme(source()), LiteralValue::Nil);
+        let class = class::Class::new(stmt.name.lexeme(source()));
+        self.current_env
+            .write()
+            .map_err(|_| {
+                RuntimeError::EnvironmentError(anyhow!("write lock in visit_class_stmt"))
+                // @todo miette!
+            })?
+            .assign(
+                SourceToken::new(stmt.name.clone(), source()),
+                LiteralValue::Callable(LochxCallable::Class(Box::new(class))),
+            )?;
+    }
 }
 
 impl expr::Visitor for Interpreter {
@@ -324,6 +347,7 @@ impl expr::Visitor for Interpreter {
                 let callable = match callable {
                     LochxCallable::Function(f) => f as Box<dyn Callable>,
                     LochxCallable::NativeFunction(f) => f as Box<dyn Callable>,
+                    LochxCallable::Class(c) => c as Box<dyn Callable>,
                 };
 
                 if expr.arguments.len() != callable.arity() {
@@ -342,6 +366,34 @@ impl expr::Visitor for Interpreter {
             }
             _ => throw!(RuntimeError::NotACallable(expr.paren.clone())),
         };
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_get_expr(&mut self, expr: &expr::Getter) -> Self::ReturnType {
+        let object = self.evaluate(expr.object.as_ref())?;
+        match object {
+            LiteralValue::Instance(i) => i.read().unwrap().get(expr.name.clone())?,
+            _ => throw!(RuntimeError::InvalidPropertyAccess(
+                expr.name.clone(),
+                "Only instances have properties."
+            )),
+        }
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_set_expr(&mut self, expr: &expr::Setter) -> Self::ReturnType {
+        let mut object = self.evaluate(expr.object.as_ref())?;
+        match &mut object {
+            LiteralValue::Instance(i) => {
+                let value = self.evaluate(expr.value.as_ref())?;
+                i.write().unwrap().set(expr.name.clone(), value.clone());
+                return value;
+            }
+            _ => throw!(RuntimeError::InvalidPropertyAccess(
+                expr.name.clone(),
+                "Only instances have fields"
+            )),
+        }
     }
 }
 

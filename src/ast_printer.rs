@@ -111,6 +111,15 @@ impl stmt::Visitor for AstPrinter {
     fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Self::ReturnType {
         format!("(return {})", stmt.value.accept(self)?)
     }
+
+    #[throws(RuntimeError)]
+    fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Self::ReturnType {
+        format!(
+            "(class {} {})",
+            stmt.name,
+            self.print_stmt(stmt.methods.clone())?
+        )
+    }
 }
 
 impl expr::Visitor for AstPrinter {
@@ -150,7 +159,9 @@ impl expr::Visitor for AstPrinter {
             LiteralValue::Callable(c) => match c {
                 LochxCallable::Function(f) => format!("<fun {}>", f.name),
                 LochxCallable::NativeFunction(_nf) => format!("<native fun>"),
+                LochxCallable::Class(c) => format!("<class {}>", c.name),
             },
+            LiteralValue::Instance(i) => format!("<{} instance>", i.read().unwrap().class.name),
         }
     }
 
@@ -175,5 +186,15 @@ impl expr::Visitor for AstPrinter {
     #[throws(RuntimeError)]
     fn visit_call_expr(&mut self, expr: &expr::Call) -> Self::ReturnType {
         format!("(call {} {:?})", expr.callee.accept(self)?, expr.arguments)
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_get_expr(&mut self, expr: &expr::Getter) -> Self::ReturnType {
+        format!("(property {})", expr.name) // @todo
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_set_expr(&mut self, expr: &expr::Setter) -> Self::ReturnType {
+        format!("(set-property {})", expr.name) // @todo
     }
 }

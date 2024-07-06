@@ -24,7 +24,7 @@ mod scanner;
 mod sema;
 mod types;
 
-pub use types::{callable, expr, literal, stmt};
+pub use types::{callable, class, expr, literal, stmt};
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -172,6 +172,11 @@ pub fn error(runtime_error: RuntimeError, message: &str) {
             t.position.span.clone(),
             format!("{}", runtime_error),
             "".into(),
+        ),
+        RuntimeError::InvalidPropertyAccess(ref t, note) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            note.into(),
         ),
         RuntimeError::DuplicateDeclaration(ref t, note) => (
             t.position.span.clone(),

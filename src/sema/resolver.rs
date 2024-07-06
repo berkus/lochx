@@ -183,6 +183,17 @@ impl expr::Visitor for Resolver<'_> {
             self.resolve_expr(argument)?;
         }
     }
+
+    #[throws(RuntimeError)]
+    fn visit_get_expr(&mut self, expr: &expr::Getter) -> Self::ReturnType {
+        self.resolve_expr(expr.object.as_ref())?;
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_set_expr(&mut self, expr: &expr::Setter) -> Self::ReturnType {
+        self.resolve_expr(expr.value.as_ref())?;
+        self.resolve_expr(expr.object.as_ref())?;
+    }
 }
 
 impl stmt::Visitor for Resolver<'_> {
@@ -243,5 +254,11 @@ impl stmt::Visitor for Resolver<'_> {
             ));
         }
         self.resolve_expr(&stmt.value)?;
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Self::ReturnType {
+        self.declare(&stmt.name)?;
+        self.define(&stmt.name);
     }
 }
