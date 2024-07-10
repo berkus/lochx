@@ -1,7 +1,11 @@
 use {
     crate::{
-        callable::Callable, error::RuntimeError, interpreter::Interpreter, literal::LiteralValue,
-        runtime, scanner::Token,
+        callable::{Callable, Function},
+        error::RuntimeError,
+        interpreter::Interpreter,
+        literal::LiteralValue,
+        runtime,
+        scanner::Token,
     },
     culpa::throws,
     std::{
@@ -10,14 +14,17 @@ use {
     },
 };
 
+/// Class holds methods.
 #[derive(Debug, Clone)]
 pub struct Class {
     pub name: String,
+    methods: HashMap<String, Function>,
 }
 
 // Emulate pointers to instances, as they exist by-reference.
 pub type LochxInstance = Arc<RwLock<LochxInstanceImpl>>;
 
+/// Instance holds fields.
 #[derive(Debug, Clone)]
 pub struct LochxInstanceImpl {
     pub class: Class,
@@ -25,8 +32,17 @@ pub struct LochxInstanceImpl {
 }
 
 impl Class {
-    pub fn new(name: String) -> Self {
-        Self { name }
+    pub fn new(name: String, methods: HashMap<String, Function>) -> Self {
+        Self { name, methods }
+    }
+
+    #[throws(RuntimeError)]
+    pub fn find_method(&self, method_name: Token) -> Function {
+        let key = method_name.lexeme(runtime::source());
+        self.methods
+            .get(&key)
+            .cloned()
+            .ok_or_else(|| RuntimeError::UndefinedProperty(method_name))?
     }
 }
 
@@ -58,10 +74,14 @@ impl LochxInstanceImpl {
     #[throws(RuntimeError)]
     pub fn get(&self, name: Token) -> LiteralValue {
         let key = name.lexeme(runtime::source());
-        self.fields
-            .get(&key)
-            .cloned()
-            .ok_or_else(|| RuntimeError::UndefinedProperty(name))?
+        self.fields.get(&key).cloned().map_or_else(
+            || {
+                self.class.find_method(name.clone()).map(|f| {
+                    LiteralValue::Callable(crate::literal::LochxCallable::Function(Box::new(f)))
+                })
+            },
+            Ok,
+        )?
     }
 
     pub fn set(&mut self, name: Token, value: LiteralValue) {

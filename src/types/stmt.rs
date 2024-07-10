@@ -79,6 +79,15 @@ pub trait Acceptor {
     fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType;
 }
 
+impl Stmt {
+    pub fn function(&self) -> &Function {
+        match self {
+            Stmt::FunctionDecl(f) => f,
+            _ => panic!("Not a function"),
+        }
+    }
+}
+
 impl Acceptor for Stmt {
     #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {

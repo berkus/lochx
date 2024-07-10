@@ -25,6 +25,7 @@ type Scope = HashMap<String, bool>;
 enum FunctionType {
     None,
     Function,
+    Method,
 }
 
 pub struct Resolver<'interp> {
@@ -260,5 +261,8 @@ impl stmt::Visitor for Resolver<'_> {
     fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Self::ReturnType {
         self.declare(&stmt.name)?;
         self.define(&stmt.name);
+        for method in &stmt.methods {
+            self.resolve_function(method.function(), FunctionType::Method)?;
+        }
     }
 }

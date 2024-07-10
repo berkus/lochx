@@ -187,7 +187,15 @@ impl stmt::Visitor for Interpreter {
                 // @todo miette!
             })?
             .define(stmt.name.lexeme(source()), LiteralValue::Nil);
-        let class = class::Class::new(stmt.name.lexeme(source()));
+        let mut methods = HashMap::<String, callable::Function>::new();
+        for m in stmt.methods.iter().map(|m| m.function()) {
+            let fun = callable::Function {
+                closure: self.current_env.clone(),
+                ..m.clone()
+            };
+            methods.insert(m.name.lexeme(source()), fun);
+        }
+        let class = class::Class::new(stmt.name.lexeme(source()), methods);
         self.current_env
             .write()
             .map_err(|_| {

@@ -15,5 +15,5 @@ print b;
 b.a = "Hello!";
 print b.a;
 
-//b.cook();
-//b.serve("reader");
+b.cook();
+b.serve("reader");
