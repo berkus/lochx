@@ -28,10 +28,17 @@ enum FunctionType {
     Method,
 }
 
+#[derive(Copy, Clone, PartialEq)]
+enum ClassType {
+    None,
+    Class,
+}
+
 pub struct Resolver<'interp> {
     scopes: Vec<Scope>,
     interpreter: &'interp mut Interpreter,
     current_function: FunctionType,
+    current_class: ClassType,
 }
 
 impl<'interp> Resolver<'interp> {
@@ -40,6 +47,7 @@ impl<'interp> Resolver<'interp> {
             scopes: vec![],
             interpreter,
             current_function: FunctionType::None,
+            current_class: ClassType::None,
         }
     }
 
@@ -202,6 +210,12 @@ impl expr::Visitor for Resolver<'_> {
 
     #[throws(RuntimeError)]
     fn visit_this_expr(&mut self, expr: &expr::This) -> Self::ReturnType {
+        if self.current_class == ClassType::None {
+            throw!(RuntimeError::NonClassThis(
+                expr.keyword.clone(),
+                "Can't use `this` outside of class"
+            ));
+        }
         self.resolve_local(&expr.keyword);
     }
 }
@@ -268,6 +282,9 @@ impl stmt::Visitor for Resolver<'_> {
 
     #[throws(RuntimeError)]
     fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Self::ReturnType {
+        let enclosing_class = self.current_class;
+        self.current_class = ClassType::Class;
+
         self.declare(&stmt.name)?;
         self.define(&stmt.name);
 
@@ -279,5 +296,7 @@ impl stmt::Visitor for Resolver<'_> {
         }
 
         self.end_scope();
+
+        self.current_class = enclosing_class;
     }
 }

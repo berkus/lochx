@@ -38,6 +38,8 @@ pub enum RuntimeError {
     InvalidPropertyAccess(Token, &'static str), // note
     #[error("Property {0} is undefined.")]
     UndefinedProperty(Token),
+    #[error("`this` keyword outside of class")]
+    NonClassThis(Token, &'static str), // note
     #[error("Clock may have gone backwards")]
     ClockBackwards,
     #[error("Cannot obtain the environment due to {0}.")]
