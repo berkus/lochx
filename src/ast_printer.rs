@@ -33,8 +33,8 @@ impl AstPrinter {
     }
 
     #[throws(RuntimeError)]
-    fn parenthesize(&mut self, name: String, exprs: Vec<Box<Expr>>) -> String {
-        let mut s = "(".to_string() + &name;
+    fn parenthesize(&mut self, name: impl AsRef<str>, exprs: Vec<Box<Expr>>) -> String {
+        let mut s = "(".to_string() + name.as_ref();
         for expr in exprs {
             s += " ";
             s += &expr.accept(self)?;
@@ -51,16 +51,13 @@ impl stmt::Visitor for AstPrinter {
     fn visit_print_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
         format!(
             "{};",
-            self.parenthesize("print".into(), vec![Box::new(stmt.clone())])?
+            self.parenthesize("print", vec![Box::new(stmt.clone())])?
         )
     }
 
     #[throws(RuntimeError)]
     fn visit_expression_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
-        format!(
-            "{};",
-            self.parenthesize("".into(), vec![Box::new(stmt.clone())])?
-        )
+        format!("{};", self.parenthesize("", vec![Box::new(stmt.clone())])?)
     }
 
     #[throws(RuntimeError)]
@@ -80,7 +77,7 @@ impl stmt::Visitor for AstPrinter {
         format!(
             "var {} = {};",
             stmt.name,
-            self.parenthesize("".into(), vec![Box::new(stmt.initializer.clone())])?
+            self.parenthesize("", vec![Box::new(stmt.initializer.clone())])?
         )
     }
 

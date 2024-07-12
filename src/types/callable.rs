@@ -30,7 +30,7 @@ impl Display for Function {
             self.name,
             self.parameters
                 .iter()
-                .map(|p| p.lexeme(source()))
+                .map(|p| p.lexeme(source()).into())
                 .collect::<Vec<String>>()
                 .join(",")
         )
@@ -43,7 +43,7 @@ impl Function {
         closure
             .write()
             .expect("write lock in bind")
-            .define("this".into(), LiteralValue::Instance(instance.clone()));
+            .define("this", LiteralValue::Instance(instance.clone()));
         Self {
             closure,
             ..self.clone()

@@ -101,7 +101,7 @@ impl LochxInstanceImpl {
     #[throws(RuntimeError)]
     pub fn get(&self, name: Token) -> LiteralValue {
         let key = name.lexeme(runtime::source());
-        self.fields.get(&key).cloned().map_or_else(
+        self.fields.get(key).cloned().map_or_else(
             || {
                 self.class.find_method(name.clone()).map(|f| {
                     LiteralValue::Callable(crate::literal::LochxCallable::Function(Box::new(
@@ -115,6 +115,6 @@ impl LochxInstanceImpl {
 
     pub fn set(&mut self, name: Token, value: LiteralValue) {
         let key = name.lexeme(runtime::source());
-        *self.fields.entry(key.clone()).or_default() = value;
+        *self.fields.entry(key.into()).or_default() = value;
     }
 }

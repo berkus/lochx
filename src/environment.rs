@@ -1,5 +1,5 @@
 use {
-    crate::{error::RuntimeError, literal::LiteralValue, scanner::SourceToken},
+    crate::{error::RuntimeError, literal::LiteralValue, runtime::source, scanner::Token},
     anyhow::anyhow,
     culpa::{throw, throws},
     std::{
@@ -31,14 +31,14 @@ impl EnvironmentImpl {
         }))
     }
 
-    pub fn define(&mut self, name: String, value: LiteralValue) {
-        self.values.insert(name, value);
+    pub fn define(&mut self, name: impl AsRef<str>, value: LiteralValue) {
+        self.values.insert(name.as_ref().into(), value);
     }
 
     #[throws(RuntimeError)]
-    pub fn get(&self, name: SourceToken) -> LiteralValue {
-        if self.values.contains_key(name.to_str()) {
-            return self.values.get(name.to_str()).unwrap().clone();
+    pub fn get(&self, name: Token) -> LiteralValue {
+        if self.values.contains_key(name.lexeme(source())) {
+            return self.values.get(name.lexeme(source())).unwrap().clone();
         }
         // @todo Use ancestor(distance=1):
         if let Some(parent) = &self.enclosing {
@@ -48,13 +48,13 @@ impl EnvironmentImpl {
                 .get(name)?;
         }
         throw!(RuntimeError::UndefinedVariable(
-            name.token.clone(),
-            name.to_str().into()
+            name.clone(),
+            name.to_string().into()
         ))
     }
 
     #[throws(RuntimeError)]
-    pub fn get_at(&self, distance: usize, name: SourceToken) -> LiteralValue {
+    pub fn get_at(&self, distance: usize, name: Token) -> LiteralValue {
         if distance == 0 {
             return self.get(name)?;
         }
@@ -65,10 +65,10 @@ impl EnvironmentImpl {
     }
 
     #[throws(RuntimeError)]
-    pub fn assign(&mut self, name: SourceToken, value: LiteralValue) {
-        if self.values.contains_key(name.to_str()) {
+    pub fn assign(&mut self, name: Token, value: LiteralValue) {
+        if self.values.contains_key(&name.to_string()) {
             self.values
-                .entry(name.to_str().into())
+                .entry(name.to_string().into())
                 .and_modify(|e| *e = value);
             return;
         }
@@ -81,13 +81,13 @@ impl EnvironmentImpl {
             return;
         }
         throw!(RuntimeError::UndefinedVariable(
-            name.token.clone(),
-            name.to_str().into()
+            name.clone(),
+            name.to_string()
         ))
     }
 
     #[throws(RuntimeError)]
-    pub fn assign_at(&mut self, distance: usize, name: SourceToken, value: LiteralValue) {
+    pub fn assign_at(&mut self, distance: usize, name: Token, value: LiteralValue) {
         if distance == 0 {
             return self.assign(name, value)?;
         }

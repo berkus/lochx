@@ -75,7 +75,7 @@ impl<'interp> Resolver<'interp> {
 
     fn resolve_local(&mut self, name: &Token) {
         for (index, scope) in self.scopes.iter().rev().enumerate() {
-            if scope.contains_key(&name.lexeme(runtime::source())) {
+            if scope.contains_key(name.lexeme(runtime::source())) {
                 self.interpreter.resolve(name, index);
             }
         }
@@ -106,7 +106,7 @@ impl<'interp> Resolver<'interp> {
     #[throws(RuntimeError)]
     fn declare(&mut self, name: &Token) {
         match self.scopes.last_mut() {
-            Some(x) => match x.entry(name.lexeme(runtime::source())) {
+            Some(x) => match x.entry(name.lexeme(runtime::source()).into()) {
                 Entry::Occupied(_) => {
                     throw!(RuntimeError::DuplicateDeclaration(
                         name.clone(),
@@ -176,7 +176,7 @@ impl expr::Visitor for Resolver<'_> {
     #[throws(RuntimeError)]
     fn visit_var_expr(&mut self, expr: &expr::Var) -> Self::ReturnType {
         if let Some(item) = self.scopes.last() {
-            if let Some(entry) = item.get(&expr.name.lexeme(runtime::source())) {
+            if let Some(entry) = item.get(expr.name.lexeme(runtime::source())) {
                 if *entry == false {
                     throw!(RuntimeError::InvalidAssignmentTarget(
                         expr.name.clone(),

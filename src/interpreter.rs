@@ -7,7 +7,7 @@ use {
         expr::{self, Acceptor as ExprAcceptor, Expr},
         literal::{LiteralValue, LochxCallable},
         runtime::source,
-        scanner::{SourceToken, Token, TokenType},
+        scanner::{Token, TokenType},
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
     anyhow::anyhow,
@@ -27,7 +27,7 @@ impl Interpreter {
     pub fn new(out: OutputOnly) -> Self {
         let env = EnvironmentImpl::new();
         env.write().expect("write lock in new").define(
-            "clock".into(),
+            "clock",
             LiteralValue::Callable(LochxCallable::NativeFunction(Box::new(
                 callable::NativeFunction {
                     arity: 0,
@@ -89,14 +89,14 @@ impl Interpreter {
                 .map_err(|_| {
                     RuntimeError::EnvironmentError(anyhow!("read lock in look_up_variable"))
                 })?
-                .get_at(*distance, SourceToken::new(token.clone(), source()))?
+                .get_at(*distance, token.clone())?
         } else {
             self.globals
                 .read()
                 .map_err(|_| {
                     RuntimeError::EnvironmentError(anyhow!("read lock in look_up_variable"))
                 })?
-                .get(SourceToken::new(token.clone(), source()))?
+                .get(token.clone())?
         }
     }
 }
@@ -193,9 +193,9 @@ impl stmt::Visitor for Interpreter {
                 closure: self.current_env.clone(),
                 ..m.clone()
             };
-            methods.insert(m.name.lexeme(source()), fun);
+            methods.insert(m.name.lexeme(source()).into(), fun);
         }
-        let class = class::Class::new(stmt.name.lexeme(source()), methods);
+        let class = class::Class::new(stmt.name.lexeme(source()).into(), methods);
         self.current_env
             .write()
             .map_err(|_| {
@@ -203,7 +203,7 @@ impl stmt::Visitor for Interpreter {
                 // @todo miette!
             })?
             .assign(
-                SourceToken::new(stmt.name.clone(), source()),
+                stmt.name.clone(),
                 LiteralValue::Callable(LochxCallable::Class(Box::new(class))),
             )?;
     }
@@ -311,11 +311,7 @@ impl expr::Visitor for Interpreter {
                         "write lock in visit_assign_expr.current_env"
                     ))
                 })?
-                .assign_at(
-                    *d,
-                    SourceToken::new(expr.name.clone(), source()),
-                    value.clone(),
-                )?;
+                .assign_at(*d, expr.name.clone(), value.clone())?;
         } else {
             self.globals
                 .write()
@@ -324,7 +320,7 @@ impl expr::Visitor for Interpreter {
                         "write lock in visit_assign_expr.globals"
                     ))
                 })?
-                .assign(SourceToken::new(expr.name.clone(), source()), value.clone())?;
+                .assign(expr.name.clone(), value.clone())?;
         }
         value
     }

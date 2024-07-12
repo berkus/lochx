@@ -17,28 +17,6 @@ impl std::fmt::Display for SourcePosition {
 }
 
 #[derive(Debug, Clone)]
-pub struct SourceToken<'src> {
-    pub token: Token,
-    source: &'src str,
-}
-
-impl<'src> SourceToken<'src> {
-    pub fn new(token: Token, source: &'src str) -> Self {
-        Self { token, source }
-    }
-
-    pub fn to_str(&self) -> &str {
-        &self.source[self.token.position.span.clone()]
-    }
-}
-
-impl std::fmt::Display for SourceToken<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_str())
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct Token {
     pub r#type: TokenType,
     pub position: SourcePosition,
@@ -47,7 +25,7 @@ pub struct Token {
 
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", SourceToken::new(self.clone(), runtime::source()))
+        write!(f, "{}", self.lexeme(runtime::source()))
     }
 }
 
@@ -76,8 +54,8 @@ impl Token {
         }
     }
 
-    pub fn lexeme(&self, source: &str) -> String {
-        source[self.position.span.clone()].into()
+    pub fn lexeme<'src>(&self, source: &'src str) -> &'src str {
+        &source[self.position.span.clone()]
     }
 
     pub fn literal_num(&self) -> Option<f64> {
