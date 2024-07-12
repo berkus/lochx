@@ -21,6 +21,18 @@ pub struct Class {
     methods: HashMap<String, Function>,
 }
 
+#[allow(unused)]
+struct MethodsDisplayWrap(HashMap<String, Function>);
+
+impl std::fmt::Display for MethodsDisplayWrap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (name, method) in &self.0 {
+            write!(f, "{}->{}\n", name, method)?;
+        }
+        Ok(())
+    }
+}
+
 // Emulate pointers to instances, as they exist by-reference.
 pub type LochxInstance = Arc<RwLock<LochxInstanceImpl>>;
 

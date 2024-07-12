@@ -11,7 +11,7 @@ use {
     },
     anyhow::anyhow,
     culpa::{throw, throws},
-    std::time::SystemTime,
+    std::{fmt::Display, time::SystemTime},
 };
 
 #[derive(Debug, Clone)]
@@ -20,6 +20,21 @@ pub struct Function {
     pub parameters: Vec<Token>,
     pub body: Vec<Stmt>,
     pub closure: Environment,
+}
+
+impl Display for Function {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "<fn {}({})>",
+            self.name,
+            self.parameters
+                .iter()
+                .map(|p| p.lexeme(source()))
+                .collect::<Vec<String>>()
+                .join(",")
+        )
+    }
 }
 
 impl Function {

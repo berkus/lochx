@@ -151,6 +151,12 @@ fn run(interpreter: &mut Interpreter, source: &str, scan_offset: usize) {
     }
 }
 
+pub fn wrapln(args: impl AsRef<str>) {
+    OUT.get()
+        .expect("Must be set at start")
+        .wrapln(liso!(fg = blue, args.as_ref(), fg = none));
+}
+
 pub fn error(runtime_error: RuntimeError, message: &str) {
     let (span, inner_message, note) = match runtime_error {
         RuntimeError::ParseError {
