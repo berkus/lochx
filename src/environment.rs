@@ -54,6 +54,21 @@ impl EnvironmentImpl {
     }
 
     #[throws(RuntimeError)]
+    pub fn get_by_name(&self, name: impl AsRef<str>) -> LiteralValue {
+        if self.values.contains_key(name.as_ref()) {
+            return self.values.get(name.as_ref()).unwrap().clone();
+        }
+        // @todo Use ancestor(distance=1):
+        if let Some(parent) = &self.enclosing {
+            return parent
+                .read()
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))? // @todo miette!
+                .get_by_name(name)?;
+        }
+        throw!(RuntimeError::UndefinedVariableName(name.as_ref().into(),))
+    }
+
+    #[throws(RuntimeError)]
     pub fn get_at(&self, distance: usize, name: Token) -> LiteralValue {
         if distance == 0 {
             return self.get(name)?;
@@ -62,6 +77,17 @@ impl EnvironmentImpl {
             .read()
             .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get_at")))? // @todo miette!
             .get(name)?
+    }
+
+    #[throws(RuntimeError)]
+    pub fn get_at_by_name(&self, distance: usize, name: impl AsRef<str>) -> LiteralValue {
+        if distance == 0 {
+            return self.get_by_name(name)?;
+        }
+        self.ancestor(distance)?
+            .read()
+            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get_at")))? // @todo miette!
+            .get_by_name(name)?
     }
 
     #[throws(RuntimeError)]

@@ -164,6 +164,7 @@ impl Parser {
             parameters,
             body,
             closure,
+            is_initializer: false, // @todo should be part of LochxFunction (the runtime repr)
         })
     }
 

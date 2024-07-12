@@ -20,6 +20,7 @@ pub struct Function {
     pub parameters: Vec<Token>,
     pub body: Vec<Stmt>,
     pub closure: Environment,
+    pub is_initializer: bool,
 }
 
 impl Display for Function {
@@ -48,6 +49,10 @@ impl Function {
             closure,
             ..self.clone()
         }
+    }
+
+    pub fn is_init(&self) -> bool {
+        self.name.lexeme(source()) == "init"
     }
 }
 
@@ -86,6 +91,13 @@ impl Callable for Function {
                 RuntimeError::ReturnValue(v) => return v,
                 _ => throw!(e),
             }
+        }
+        if self.is_initializer {
+            return self
+                .closure
+                .read()
+                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in call")))? // @todo miette!
+                .get_at_by_name(0, "this")?;
         }
         LiteralValue::Nil
     }

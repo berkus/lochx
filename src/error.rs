@@ -20,8 +20,6 @@ pub enum RuntimeError {
         expected: TokenType,
         message: String,
     },
-    #[error("Undefined variable '{1}'")]
-    UndefinedVariable(Token, String),
     #[error("Duplicate declaration")]
     DuplicateDeclaration(Token, &'static str), // note
     #[error("Invalid assignment target. Expected variable name.")]
@@ -38,6 +36,10 @@ pub enum RuntimeError {
     InvalidPropertyAccess(Token, &'static str), // note
     #[error("Property {0} is undefined.")]
     UndefinedProperty(Token),
+    #[error("Undefined variable '{1}'")]
+    UndefinedVariable(Token, String),
+    #[error("Undefined variable '{0}'")]
+    UndefinedVariableName(String),
     #[error("`this` keyword outside of class")]
     NonClassThis(Token, &'static str), // note
     #[error("Clock may have gone backwards")]

@@ -160,6 +160,7 @@ impl stmt::Visitor for Interpreter {
             parameters: stmt.parameters.clone(),
             body: stmt.body.clone(),
             closure: EnvironmentImpl::nested(self.current_env.clone()),
+            is_initializer: false,
         };
         self.current_env
             .write()
@@ -191,6 +192,7 @@ impl stmt::Visitor for Interpreter {
         for m in stmt.methods.iter().map(|m| m.function()) {
             let fun = callable::Function {
                 closure: self.current_env.clone(),
+                is_initializer: m.is_init(),
                 ..m.clone()
             };
             methods.insert(m.name.lexeme(source()).into(), fun);
