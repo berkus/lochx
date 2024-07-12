@@ -579,6 +579,11 @@ impl Parser {
                 ),
             });
         }
+        if self.match_any(vec![TokenType::KwThis]) {
+            return Expr::This(expr::This {
+                keyword: self.previous(),
+            });
+        }
         if self.match_any(vec![TokenType::Identifier]) {
             return Expr::Variable(expr::Var {
                 name: self.previous().clone(),

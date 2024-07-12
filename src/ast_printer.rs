@@ -197,4 +197,9 @@ impl expr::Visitor for AstPrinter {
     fn visit_set_expr(&mut self, expr: &expr::Setter) -> Self::ReturnType {
         format!("(set-property {})", expr.name) // @todo
     }
+
+    #[throws(RuntimeError)]
+    fn visit_this_expr(&mut self, expr: &expr::This) -> Self::ReturnType {
+        format!("{}", expr.keyword)
+    }
 }

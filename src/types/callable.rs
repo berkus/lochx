@@ -1,5 +1,6 @@
 use {
     crate::{
+        class::LochxInstance,
         environment::{Environment, EnvironmentImpl},
         error::RuntimeError,
         interpreter::Interpreter,
@@ -19,6 +20,20 @@ pub struct Function {
     pub parameters: Vec<Token>,
     pub body: Vec<Stmt>,
     pub closure: Environment,
+}
+
+impl Function {
+    pub fn bind(&self, instance: &LochxInstance) -> Self {
+        let closure = EnvironmentImpl::nested(self.closure.clone());
+        closure
+            .write()
+            .expect("write lock in bind")
+            .define("this".into(), LiteralValue::Instance(instance.clone()));
+        Self {
+            closure,
+            ..self.clone()
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

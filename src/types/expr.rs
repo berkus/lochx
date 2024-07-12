@@ -16,6 +16,7 @@ pub enum Expr {
     Call(Call),
     Get(Getter),
     Set(Setter),
+    This(This),
 }
 
 #[derive(Debug, Clone)]
@@ -79,6 +80,11 @@ pub struct Setter {
     pub value: Box<Expr>,
 }
 
+#[derive(Debug, Clone)]
+pub struct This {
+    pub keyword: Token,
+}
+
 /// Expressions visitor.
 pub trait Visitor {
     type ReturnType;
@@ -104,6 +110,8 @@ pub trait Visitor {
     fn visit_get_expr(&mut self, expr: &Getter) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_set_expr(&mut self, expr: &Setter) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_this_expr(&mut self, expr: &This) -> Self::ReturnType;
 }
 
 /// Expression visitor acceptor.
@@ -126,6 +134,7 @@ impl Acceptor for Expr {
             Expr::Call(e) => e.accept(visitor)?,
             Expr::Get(p) => p.accept(visitor)?,
             Expr::Set(p) => p.accept(visitor)?,
+            Expr::This(t) => t.accept(visitor)?,
         }
     }
 }
@@ -197,5 +206,12 @@ impl Acceptor for Setter {
     #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_set_expr(self)?
+    }
+}
+
+impl Acceptor for This {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_this_expr(self)?
     }
 }

@@ -113,15 +113,19 @@ impl<'interp> Resolver<'interp> {
         }
     }
 
-    fn define(&mut self, name: &Token) {
+    fn define_by_name(&mut self, name: impl AsRef<str>) {
         match self.scopes.last_mut() {
             Some(x) => {
-                x.entry(name.lexeme(runtime::source()))
+                x.entry(name.as_ref().into())
                     .and_modify(|v| *v = true)
                     .or_insert(true);
             }
             None => {}
         }
+    }
+
+    fn define(&mut self, name: &Token) {
+        self.define_by_name(name.lexeme(runtime::source()))
     }
 }
 
@@ -195,6 +199,11 @@ impl expr::Visitor for Resolver<'_> {
         self.resolve_expr(expr.value.as_ref())?;
         self.resolve_expr(expr.object.as_ref())?;
     }
+
+    #[throws(RuntimeError)]
+    fn visit_this_expr(&mut self, expr: &expr::This) -> Self::ReturnType {
+        self.resolve_local(&expr.keyword);
+    }
 }
 
 impl stmt::Visitor for Resolver<'_> {
@@ -261,8 +270,14 @@ impl stmt::Visitor for Resolver<'_> {
     fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Self::ReturnType {
         self.declare(&stmt.name)?;
         self.define(&stmt.name);
+
+        self.begin_scope();
+        self.define_by_name("this");
+
         for method in &stmt.methods {
             self.resolve_function(method.function(), FunctionType::Method)?;
         }
+
+        self.end_scope();
     }
 }

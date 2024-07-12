@@ -59,7 +59,7 @@ impl Callable for Class {
 
     #[throws(RuntimeError)]
     fn call(&self, _interpreter: &mut Interpreter, _arguments: Vec<LiteralValue>) -> LiteralValue {
-        LiteralValue::Instance(Arc::new(RwLock::new(LochxInstanceImpl::new(self.clone()))))
+        LiteralValue::Instance(LochxInstanceImpl::new(self.clone()).wrapped())
     }
 }
 
@@ -71,13 +71,19 @@ impl LochxInstanceImpl {
         }
     }
 
+    fn wrapped(&self) -> LochxInstance {
+        Arc::new(RwLock::new(self.clone()))
+    }
+
     #[throws(RuntimeError)]
     pub fn get(&self, name: Token) -> LiteralValue {
         let key = name.lexeme(runtime::source());
         self.fields.get(&key).cloned().map_or_else(
             || {
                 self.class.find_method(name.clone()).map(|f| {
-                    LiteralValue::Callable(crate::literal::LochxCallable::Function(Box::new(f)))
+                    LiteralValue::Callable(crate::literal::LochxCallable::Function(Box::new(
+                        f.bind(&self.wrapped()),
+                    )))
                 })
             },
             Ok,

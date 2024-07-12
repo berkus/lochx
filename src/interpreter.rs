@@ -403,6 +403,11 @@ impl expr::Visitor for Interpreter {
             )),
         }
     }
+
+    #[throws(RuntimeError)]
+    fn visit_this_expr(&mut self, expr: &expr::This) -> Self::ReturnType {
+        self.look_up_variable(&expr.keyword)?
+    }
 }
 
 fn invalid_binop_arguments(op: Token) -> LiteralValue {
