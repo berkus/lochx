@@ -176,7 +176,11 @@ impl stmt::Visitor for Interpreter {
 
     #[throws(RuntimeError)]
     fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Self::ReturnType {
-        throw!(RuntimeError::ReturnValue(self.evaluate(&stmt.value)?))
+        throw!(RuntimeError::ReturnValue(if stmt.value.is_some() {
+            self.evaluate(&stmt.value.clone().unwrap())?
+        } else {
+            LiteralValue::Nil
+        }))
     }
 
     #[throws(RuntimeError)]

@@ -25,6 +25,7 @@ type Scope = HashMap<String, bool>;
 enum FunctionType {
     None,
     Function,
+    Initializer,
     Method,
 }
 
@@ -271,13 +272,26 @@ impl stmt::Visitor for Resolver<'_> {
 
     #[throws(RuntimeError)]
     fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Self::ReturnType {
-        if self.current_function == FunctionType::None {
-            throw!(RuntimeError::TopLevelReturn(
-                stmt.keyword.clone(),
-                "Can't return from top-level code"
-            ));
+        match self.current_function {
+            FunctionType::None => {
+                throw!(RuntimeError::TopLevelReturn(
+                    stmt.keyword.clone(),
+                    "Can't return from top-level code"
+                ));
+            }
+            FunctionType::Initializer => {
+                if stmt.value.is_some() {
+                    throw!(RuntimeError::ValueReturnFromInitializer(
+                        stmt.keyword.clone(),
+                        "Can't return value from initializer"
+                    ));
+                }
+            }
+            _ => {}
         }
-        self.resolve_expr(&stmt.value)?;
+        if stmt.value.is_some() {
+            self.resolve_expr(&stmt.value.clone().unwrap())?;
+        }
     }
 
     #[throws(RuntimeError)]
@@ -292,7 +306,13 @@ impl stmt::Visitor for Resolver<'_> {
         self.define_by_name("this");
 
         for method in &stmt.methods {
-            self.resolve_function(method.function(), FunctionType::Method)?;
+            let fun = method.function();
+            let function_type = if fun.is_init() {
+                FunctionType::Initializer
+            } else {
+                FunctionType::Method
+            };
+            self.resolve_function(fun, function_type)?;
         }
 
         self.end_scope();

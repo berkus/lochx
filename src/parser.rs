@@ -298,11 +298,9 @@ impl Parser {
     fn return_stmt(&mut self) -> Stmt {
         let keyword = self.previous();
         let value = if !self.check(TokenType::Semicolon) {
-            self.expression()?
+            Some(self.expression()?)
         } else {
-            Expr::Literal(expr::Literal {
-                value: LiteralValue::Nil,
-            })
+            None
         };
         self.consume(TokenType::Semicolon, "Expected ';' after return value.")?;
         Stmt::Return(stmt::Return { keyword, value })

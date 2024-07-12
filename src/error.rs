@@ -12,6 +12,8 @@ pub enum RuntimeError {
     ReturnValue(LiteralValue),
     #[error("Return statement at top level")]
     TopLevelReturn(Token, &'static str), // note
+    #[error("Can't return explicit value from initializer")]
+    ValueReturnFromInitializer(Token, &'static str), // note
     #[error("Scanning error")]
     ScanError { location: SourcePosition },
     #[error("Parsing error")]

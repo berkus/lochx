@@ -1,0 +1,14 @@
+class Foo {
+  init() {
+    //return "something else";
+  }
+}
+
+class Bar {
+  init() {
+    return;
+  }
+}
+
+print Foo().init();
+print Bar().init();

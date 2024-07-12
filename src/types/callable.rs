@@ -88,7 +88,16 @@ impl Callable for Function {
         let ret = interpreter.execute_block(self.body.clone(), environment);
         if let Err(e) = ret {
             match e {
-                RuntimeError::ReturnValue(v) => return v,
+                RuntimeError::ReturnValue(v) => {
+                    if self.is_initializer {
+                        return self
+                            .closure
+                            .read()
+                            .expect("read lock in call")
+                            .get_at_by_name(0, "this")?;
+                    }
+                    return v;
+                }
                 _ => throw!(e),
             }
         }

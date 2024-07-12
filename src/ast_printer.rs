@@ -106,7 +106,12 @@ impl stmt::Visitor for AstPrinter {
 
     #[throws(RuntimeError)]
     fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Self::ReturnType {
-        format!("(return {})", stmt.value.accept(self)?)
+        format!(
+            "(return {})",
+            stmt.value
+                .clone()
+                .map_or_else(|| Ok("".into()), |v| v.accept(self))?
+        )
     }
 
     #[throws(RuntimeError)]
