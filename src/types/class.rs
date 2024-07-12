@@ -36,12 +36,13 @@ impl Class {
         Self { name, methods }
     }
 
+    pub fn find_method_by_name(&self, method_name: impl AsRef<str>) -> Option<Function> {
+        self.methods.get(method_name.as_ref()).cloned()
+    }
+
     #[throws(RuntimeError)]
     pub fn find_method(&self, method_name: Token) -> Function {
-        let key = method_name.lexeme(runtime::source());
-        self.methods
-            .get(&key)
-            .cloned()
+        self.find_method_by_name(method_name.lexeme(runtime::source()))
             .ok_or_else(|| RuntimeError::UndefinedProperty(method_name))?
     }
 }
@@ -54,12 +55,22 @@ impl std::fmt::Display for Class {
 
 impl Callable for Class {
     fn arity(&self) -> usize {
-        0
+        let init = self.find_method_by_name("init");
+        if init.is_some() {
+            init.unwrap().arity()
+        } else {
+            0
+        }
     }
 
     #[throws(RuntimeError)]
-    fn call(&self, _interpreter: &mut Interpreter, _arguments: Vec<LiteralValue>) -> LiteralValue {
-        LiteralValue::Instance(LochxInstanceImpl::new(self.clone()).wrapped())
+    fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LiteralValue>) -> LiteralValue {
+        let instance = LochxInstanceImpl::new(self.clone()).wrapped();
+        let init = self.find_method_by_name("init");
+        if init.is_some() {
+            init.unwrap().bind(&instance).call(interpreter, arguments)?;
+        }
+        LiteralValue::Instance(instance)
     }
 }
 

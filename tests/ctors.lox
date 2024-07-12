@@ -1,0 +1,8 @@
+class Bakery {
+    init(what) { this.food = what; print "initialized"; }
+    serve() { print "You ordered " + this.food; }
+}
+
+Bakery("donuts").serve();
+
+print Bakery("bagels").init("oops");
