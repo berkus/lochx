@@ -46,6 +46,10 @@ pub enum RuntimeError {
     NonClassThis(Token, &'static str), // note
     #[error("A class can't inherit from itself.")]
     RecursiveClass(Token),
+    #[error("Superclass must be a class.")]
+    NotAClassBase(Token),
+    #[error("Generic error.")]
+    GenericError,
     #[error("Clock may have gone backwards.")]
     ClockBackwards,
     #[error("Cannot obtain the environment due to {0}.")]

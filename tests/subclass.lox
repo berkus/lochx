@@ -6,4 +6,10 @@ class BostonCream < Doughnut {
     // Boston Cream-specific stuff...
 }
 
-class Oops < Oops {}
+//class Oops < Oops {}
+
+//fun NotAClass() {}
+//class Derived < NotAClass {}
+
+//var NotAClass = "I am totally not a class";
+//class Subclass < NotAClass {}

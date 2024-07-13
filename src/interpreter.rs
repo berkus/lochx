@@ -185,6 +185,20 @@ impl stmt::Visitor for Interpreter {
 
     #[throws(RuntimeError)]
     fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Self::ReturnType {
+        let superclass = if let Some(superc) = &stmt.superclass {
+            let superclass = self.evaluate(superc)?;
+            if let LiteralValue::Callable(LochxCallable::Class(baseclass)) = superclass {
+                Some(baseclass)
+            } else {
+                if let Expr::Variable(name) = superc {
+                    throw!(RuntimeError::NotAClassBase(name.name.clone()));
+                }
+                throw!(RuntimeError::GenericError)
+            }
+        } else {
+            None
+        };
+
         self.current_env
             .write()
             .map_err(|_| {
@@ -201,7 +215,7 @@ impl stmt::Visitor for Interpreter {
             };
             methods.insert(m.name.lexeme(source()).into(), fun);
         }
-        let class = class::Class::new(stmt.name.lexeme(source()).into(), None, methods);
+        let class = class::Class::new(stmt.name.lexeme(source()).into(), superclass, methods);
         self.current_env
             .write()
             .map_err(|_| {

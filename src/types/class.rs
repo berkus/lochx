@@ -2,7 +2,6 @@ use {
     crate::{
         callable::{Callable, Function},
         error::RuntimeError,
-        expr,
         interpreter::Interpreter,
         literal::LiteralValue,
         runtime,
@@ -19,7 +18,7 @@ use {
 #[derive(Debug, Clone)]
 pub struct Class {
     pub name: String,
-    superclass: Option<expr::Expr>, // Expr::Var only
+    superclass: Option<Box<Class>>,
     methods: HashMap<String, Function>,
 }
 
@@ -48,7 +47,7 @@ pub struct LochxInstanceImpl {
 impl Class {
     pub fn new(
         name: String,
-        superclass: Option<expr::Expr>,
+        superclass: Option<Box<Class>>,
         methods: HashMap<String, Function>,
     ) -> Self {
         Self {
