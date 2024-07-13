@@ -8,25 +8,25 @@ use {
 
 #[derive(Error, Debug)]
 pub enum RuntimeError {
-    #[error("Not an error, a function return mechanism")]
+    #[error("Not an error, a function return mechanism.")]
     ReturnValue(LiteralValue),
-    #[error("Return statement at top level")]
+    #[error("Return statement at top level.")]
     TopLevelReturn(Token, &'static str), // note
-    #[error("Can't return explicit value from initializer")]
+    #[error("Can't return explicit value from initializer.")]
     ValueReturnFromInitializer(Token, &'static str), // note
-    #[error("Scanning error")]
+    #[error("Scanning error.")]
     ScanError { location: SourcePosition },
-    #[error("Parsing error")]
+    #[error("Parsing error.")]
     ParseError {
         token: Token,
         expected: TokenType,
         message: String,
     },
-    #[error("Duplicate declaration")]
+    #[error("Duplicate declaration.")]
     DuplicateDeclaration(Token, &'static str), // note
     #[error("Invalid assignment target. Expected variable name.")]
     InvalidAssignmentTarget(Token, &'static str), // note
-    #[error("Expected expression")]
+    #[error("Expected expression.")]
     ExpectedExpression(Token),
     #[error("Too many arguments. Expected less than 256.")]
     TooManyArguments(Token),
@@ -38,15 +38,15 @@ pub enum RuntimeError {
     InvalidPropertyAccess(Token, &'static str), // note
     #[error("Property {0} is undefined.")]
     UndefinedProperty(Token),
-    #[error("Undefined variable '{1}'")]
+    #[error("Undefined variable '{1}'.")]
     UndefinedVariable(Token, String),
-    #[error("Undefined variable '{0}'")]
+    #[error("Undefined variable '{0}'.")]
     UndefinedVariableName(String),
-    #[error("`this` keyword outside of class")]
+    #[error("`this` keyword outside of class.")]
     NonClassThis(Token, &'static str), // note
-    #[error("A class can't inherit from itself")]
+    #[error("A class can't inherit from itself.")]
     RecursiveClass(Token),
-    #[error("Clock may have gone backwards")]
+    #[error("Clock may have gone backwards.")]
     ClockBackwards,
     #[error("Cannot obtain the environment due to {0}.")]
     EnvironmentError(anyhow::Error),

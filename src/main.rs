@@ -171,60 +171,60 @@ pub fn error(runtime_error: RuntimeError, message: &str) {
         RuntimeError::ScanError { location } => (location.span, "Here".into(), "".into()),
         RuntimeError::TopLevelReturn(ref t, note) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             note.into(),
         ),
         RuntimeError::NonClassThis(ref t, note) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             note.into(),
         ),
         RuntimeError::RecursiveClass(ref t) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             "".into(),
         ),
         RuntimeError::UndefinedVariable(ref t, _) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             "".into(),
         ),
         RuntimeError::InvalidPropertyAccess(ref t, note) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             note.into(),
         ),
         RuntimeError::DuplicateDeclaration(ref t, note) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             note.into(),
         ),
         RuntimeError::InvalidAssignmentTarget(ref t, note) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             note.into(),
         ),
         RuntimeError::ExpectedExpression(ref t) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             "".into(),
         ),
         RuntimeError::TooManyArguments(ref t) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             "".into(),
         ),
         RuntimeError::NotACallable(ref t) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             "".into(),
         ),
         RuntimeError::InvalidArity(ref t, _, _) => (
             t.position.span.clone(),
-            format!("{}", runtime_error),
+            format!("{runtime_error}"),
             "".into(),
         ),
-        _ => ((0..0), format!("{message}: {}", runtime_error), "".into()), // @todo skip label if no span
+        _ => ((0..0), format!("{runtime_error}"), "".into()), // @todo skip label if no span
     };
 
     let diag = MietteDiagnostic::new(message).with_label(LabeledSpan::at(span, inner_message));
