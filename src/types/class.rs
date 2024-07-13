@@ -58,7 +58,11 @@ impl Class {
     }
 
     pub fn find_method_by_name(&self, method_name: impl AsRef<str>) -> Option<Function> {
-        self.methods.get(method_name.as_ref()).cloned()
+        self.methods.get(method_name.as_ref()).cloned().or(self
+            .superclass
+            .clone()
+            .map(|sc| sc.find_method_by_name(method_name))
+            .flatten())
     }
 
     #[throws(RuntimeError)]

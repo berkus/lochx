@@ -1,9 +1,11 @@
 class Doughnut {
     // General doughnut stuff...
+    first() { print "Base method"; }
 }
 
 class BostonCream < Doughnut {
     // Boston Cream-specific stuff...
+    second() { print "Derived method"; }
 }
 
 //class Oops < Oops {}
@@ -13,3 +15,6 @@ class BostonCream < Doughnut {
 
 //var NotAClass = "I am totally not a class";
 //class Subclass < NotAClass {}
+
+BostonCream().first();
+BostonCream().second();
