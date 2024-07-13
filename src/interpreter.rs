@@ -201,7 +201,7 @@ impl stmt::Visitor for Interpreter {
             };
             methods.insert(m.name.lexeme(source()).into(), fun);
         }
-        let class = class::Class::new(stmt.name.lexeme(source()).into(), methods);
+        let class = class::Class::new(stmt.name.lexeme(source()).into(), None, methods);
         self.current_env
             .write()
             .map_err(|_| {

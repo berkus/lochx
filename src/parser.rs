@@ -23,7 +23,7 @@ pub struct Parser {
 ///                | funDecl
 ///                | varDecl
 ///                | statement ;
-/// classDecl      → "class" IDENTIFIER "{" function* "}" ;
+/// classDecl      → "class" IDENTIFIER ( "<" IDENTIFIER )? "{" function* "}" ;
 /// funDecl        → "fun" function ;
 /// function       → IDENTIFIER "(" parameters? ")" block ;
 /// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
@@ -116,13 +116,25 @@ impl Parser {
     #[throws(RuntimeError)]
     fn class_declaration(&mut self) -> Stmt {
         let name = self.consume(TokenType::Identifier, "Expect class name.")?;
+        let superclass = if self.match_any(vec![TokenType::Less]) {
+            self.consume(TokenType::Identifier, "Expect superclass name.")?;
+            Some(Expr::Variable(expr::Var {
+                name: self.previous(),
+            }))
+        } else {
+            None
+        };
         self.consume(TokenType::LeftBrace, "Expect '{' before class body.")?;
         let mut methods = vec![];
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
             methods.push(self.function("method")?);
         }
         self.consume(TokenType::RightBrace, "Expect '}' after class body.")?;
-        Stmt::Class(stmt::Class { name, methods })
+        Stmt::Class(stmt::Class {
+            name,
+            methods,
+            superclass,
+        })
     }
 
     #[throws(RuntimeError)]

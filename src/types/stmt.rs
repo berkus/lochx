@@ -46,7 +46,8 @@ pub struct WhileStmt {
 #[derive(Debug, Clone)]
 pub struct Class {
     pub name: Token,
-    pub methods: Vec<Stmt>, // actually, Vec<Function>...
+    pub methods: Vec<Stmt>,       // actually, Vec<Function>...
+    pub superclass: Option<Expr>, // actually, Expr::Var
 }
 
 /// Statements visitor.
