@@ -179,6 +179,11 @@ pub fn error(runtime_error: RuntimeError, message: &str) {
             format!("{}", runtime_error),
             note.into(),
         ),
+        RuntimeError::RecursiveClass(ref t) => (
+            t.position.span.clone(),
+            format!("{}", runtime_error),
+            "".into(),
+        ),
         RuntimeError::UndefinedVariable(ref t, _) => (
             t.position.span.clone(),
             format!("{}", runtime_error),

@@ -44,6 +44,8 @@ pub enum RuntimeError {
     UndefinedVariableName(String),
     #[error("`this` keyword outside of class")]
     NonClassThis(Token, &'static str), // note
+    #[error("A class can't inherit from itself")]
+    RecursiveClass(Token),
     #[error("Clock may have gone backwards")]
     ClockBackwards,
     #[error("Cannot obtain the environment due to {0}.")]

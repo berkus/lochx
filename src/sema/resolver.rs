@@ -302,6 +302,14 @@ impl stmt::Visitor for Resolver<'_> {
         self.declare(&stmt.name)?;
         self.define(&stmt.name);
 
+        if let Some(expr::Expr::Variable(superc)) = &stmt.superclass {
+            if superc.name.lexeme(runtime::source()) == stmt.name.lexeme(runtime::source()) {
+                throw!(RuntimeError::RecursiveClass(superc.name.clone()));
+            }
+
+            self.resolve_expr(&stmt.superclass.clone().unwrap())?;
+        }
+
         self.begin_scope();
         self.define_by_name("this");
 

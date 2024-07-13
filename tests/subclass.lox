@@ -5,3 +5,5 @@ class Doughnut {
 class BostonCream < Doughnut {
     // Boston Cream-specific stuff...
 }
+
+class Oops < Oops {}
