@@ -1,6 +1,10 @@
-use crate::{
-    callable::{Function, NativeFunction},
-    class::{Class, LochxInstance},
+use {
+    crate::{
+        callable::{Function, NativeFunction},
+        class::{Class, LochxInstance},
+        error::RuntimeError,
+    },
+    culpa::throw,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -50,5 +54,72 @@ impl LiteralValue {
             LiteralValue::Bool(b) => *b,
             _ => true,
         }
+    }
+}
+
+impl From<Class> for LiteralValue {
+    fn from(value: Class) -> Self {
+        Self::Callable(LochxCallable::Class(Box::new(value)))
+    }
+}
+
+impl From<Box<Class>> for LiteralValue {
+    fn from(value: Box<Class>) -> Self {
+        Self::Callable(LochxCallable::Class(value))
+    }
+}
+
+impl From<Function> for LiteralValue {
+    fn from(value: Function) -> Self {
+        Self::Callable(LochxCallable::Function(Box::new(value)))
+    }
+}
+
+impl From<Box<Function>> for LiteralValue {
+    fn from(value: Box<Function>) -> Self {
+        Self::Callable(LochxCallable::Function(value))
+    }
+}
+
+impl TryFrom<LiteralValue> for Class {
+    type Error = RuntimeError;
+
+    fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
+        Ok(
+            match match value {
+                LiteralValue::Callable(c) => c,
+                _ => throw!(RuntimeError::GenericError),
+            } {
+                LochxCallable::Class(f) => *f,
+                _ => throw!(RuntimeError::GenericError),
+            },
+        )
+    }
+}
+
+impl TryFrom<LiteralValue> for Function {
+    type Error = RuntimeError;
+
+    fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
+        Ok(
+            match match value {
+                LiteralValue::Callable(c) => c,
+                _ => throw!(RuntimeError::GenericError),
+            } {
+                LochxCallable::Function(f) => *f,
+                _ => throw!(RuntimeError::GenericError),
+            },
+        )
+    }
+}
+
+impl TryFrom<LiteralValue> for LochxInstance {
+    type Error = RuntimeError;
+
+    fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
+        Ok(match value {
+            LiteralValue::Instance(i) => i,
+            _ => throw!(RuntimeError::GenericError),
+        })
     }
 }

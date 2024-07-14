@@ -3,7 +3,7 @@ use {
         callable::{Callable, Function},
         error::RuntimeError,
         interpreter::Interpreter,
-        literal::{LiteralValue, LochxCallable},
+        literal::LiteralValue,
         runtime,
         scanner::Token,
     },
@@ -114,9 +114,7 @@ impl LochxInstanceImpl {
         self.fields.get(key).cloned().map_or_else(
             || {
                 let f = self.class.find_method(name.clone())?;
-                Ok(LiteralValue::Callable(LochxCallable::Function(Box::new(
-                    f.bind(&self.wrapped())?,
-                ))))
+                Ok(f.bind(&self.wrapped())?.into())
             },
             Ok,
         )?

@@ -146,10 +146,8 @@ impl stmt::Visitor for Interpreter {
             closure: EnvironmentImpl::nested(self.current_env.clone()),
             is_initializer: false,
         };
-        self.current_env.define(
-            stmt.name.lexeme(source()),
-            LiteralValue::Callable(LochxCallable::Function(Box::new(fun))),
-        )?;
+        self.current_env
+            .define(stmt.name.lexeme(source()), fun.into())?;
     }
 
     #[throws(RuntimeError)]
@@ -189,10 +187,7 @@ impl stmt::Visitor for Interpreter {
             methods.insert(m.name.lexeme(source()).into(), fun);
         }
         let class = class::Class::new(stmt.name.lexeme(source()).into(), superclass, methods);
-        self.current_env.assign(
-            stmt.name.clone(),
-            LiteralValue::Callable(LochxCallable::Class(Box::new(class))),
-        )?;
+        self.current_env.assign(stmt.name.clone(), class.into())?;
     }
 }
 
