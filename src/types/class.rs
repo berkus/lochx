@@ -80,12 +80,9 @@ impl std::fmt::Display for Class {
 
 impl Callable for Class {
     fn arity(&self) -> usize {
-        let init = self.find_method_by_name("init");
-        if init.is_some() {
-            init.unwrap().arity()
-        } else {
-            0
-        }
+        self.find_method_by_name("init")
+            .map(|init| init.arity())
+            .unwrap_or(0)
     }
 
     #[throws(RuntimeError)]
