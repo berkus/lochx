@@ -54,7 +54,7 @@ C().test();
 // class Eclair {
 //     cook() {
 //         super.cook();
-//         print "Pipe full of creme patissiere.";
+//         print "Pipe full of crème pâtissière.";
 //     }
 // }
 

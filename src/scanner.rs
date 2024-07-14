@@ -136,13 +136,14 @@ impl IsIdentifier for char {
 
 /// Current scanner state for iterating over the source input.
 pub struct Scanner<'src> {
-    source: &'src str,
-    scan_offset: usize, // start offset for piecewise scanning
-    line: usize,
-    start: usize,
-    current: usize,
-    tokens: Vec<Token>,
-    keywords: HashMap<&'static str, TokenType>,
+    source: &'src str,                          // Utf8 source
+    scan_offset: usize,                         // Start offset for piecewise scanning
+    line: usize,                                // Current line number
+    start_byte: usize,                          // Byte position inside the utf8 source
+    current_byte: usize,                        // Byte position inside the utf8 source
+    current_char: usize,                        // Char position inside the utf8 source
+    tokens: Vec<Token>,                         // List of collected tokens
+    keywords: HashMap<&'static str, TokenType>, // List of recognized keywords
 }
 
 impl<'a> Scanner<'a> {
@@ -151,8 +152,9 @@ impl<'a> Scanner<'a> {
             source,
             scan_offset,
             line: 1,
-            current: 0,
-            start: 0,
+            current_char: 0,
+            current_byte: 0,
+            start_byte: 0,
             tokens: vec![],
             keywords: hashmap! {
                 "and" => TokenType::KwAnd,
@@ -177,7 +179,7 @@ impl<'a> Scanner<'a> {
 
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
-            self.start = self.current;
+            self.start_byte = self.current_byte;
             self.scan_token();
         }
         self.add_token(TokenType::EOF);
@@ -259,13 +261,18 @@ impl<'a> Scanner<'a> {
     }
 
     fn is_at_end(&self) -> bool {
-        self.current >= self.source.len()
+        self.current_byte >= self.source.len()
     }
 
     fn advance(&mut self) -> char {
-        let c = self.source.chars().nth(self.current);
-        self.current += 1;
-        c.expect("Got past end of input")
+        let c = self
+            .source
+            .chars()
+            .nth(self.current_char)
+            .expect("Got past end of input in advance");
+        self.current_char += 1;
+        self.current_byte += c.len_utf8();
+        c
     }
 
     /// Return true and advance if the next character is the expected one.
@@ -273,10 +280,11 @@ impl<'a> Scanner<'a> {
         if self.is_at_end() {
             return false;
         }
-        if self.source.chars().nth(self.current) != Some(expected) {
+        if self.source.chars().nth(self.current_char) != Some(expected) {
             return false;
         }
-        self.current += 1;
+        self.current_char += 1;
+        self.current_byte += expected.len_utf8();
         return true;
     }
 
@@ -289,14 +297,15 @@ impl<'a> Scanner<'a> {
     }
 
     // @internal
-    fn peek_offset(&self, offset: usize) -> char {
-        if self.current + offset >= self.source.len() {
+    fn peek_offset(&self, byte_and_char_offset: usize) -> char {
+        // @fixme broken
+        if self.current_byte + byte_and_char_offset >= self.source.len() {
             return '\0';
         }
         self.source
             .chars()
-            .nth(self.current + offset)
-            .expect("Got past end of input")
+            .nth(self.current_char + byte_and_char_offset) // @fixme broken
+            .expect("Got past end of input in peek_offset")
     }
 
     fn string(&mut self) {
@@ -311,7 +320,7 @@ impl<'a> Scanner<'a> {
                 RuntimeError::ScanError {
                     location: self.current_location(),
                 },
-                &format!("Unterminated string starting at {}.", self.start),
+                &format!("Unterminated string starting at {}.", self.start_byte),
             );
             return;
         }
@@ -319,7 +328,7 @@ impl<'a> Scanner<'a> {
         self.advance();
 
         // Skip " " around the string value.
-        let value = &self.source[self.start + 1..self.current - 1];
+        let value = &self.source[self.start_byte + 1..self.current_byte - 1];
 
         self.add_token_with_value(TokenType::String, LiteralValue::Str(value.into()));
     }
@@ -336,7 +345,11 @@ impl<'a> Scanner<'a> {
         }
         self.add_token_with_value(
             TokenType::Number,
-            LiteralValue::Num(self.source[self.start..self.current].parse().expect("TODO")),
+            LiteralValue::Num(
+                self.source[self.start_byte..self.current_byte]
+                    .parse()
+                    .expect("TODO"),
+            ),
         );
     }
 
@@ -354,13 +367,13 @@ impl<'a> Scanner<'a> {
     }
 
     fn lexeme(&self) -> &str {
-        &self.source[self.start..self.current]
+        &self.source[self.start_byte..self.current_byte]
     }
 
     fn current_location(&self) -> SourcePosition {
         SourcePosition {
             line: self.line,
-            span: self.start + self.scan_offset..self.current + self.scan_offset,
+            span: self.start_byte + self.scan_offset..self.current_byte + self.scan_offset,
         }
     }
 
