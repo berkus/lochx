@@ -1,7 +1,7 @@
 use {
     crate::{
         class::LochxInstance,
-        environment::{Environment, EnvironmentImpl},
+        environment::{Environment, EnvironmentImpl, Environmental},
         error::RuntimeError,
         interpreter::Interpreter,
         literal::LiteralValue,
@@ -9,7 +9,6 @@ use {
         scanner::Token,
         stmt::Stmt,
     },
-    anyhow::anyhow,
     culpa::{throw, throws},
     std::{fmt::Display, time::SystemTime},
 };
@@ -39,12 +38,10 @@ impl Display for Function {
 }
 
 impl Function {
+    #[throws(RuntimeError)]
     pub fn bind(&self, instance: &LochxInstance) -> Self {
-        let closure = EnvironmentImpl::nested(self.closure.clone());
-        closure
-            .write()
-            .expect("write lock in bind")
-            .define("this", LiteralValue::Instance(instance.clone()));
+        let mut closure = EnvironmentImpl::nested(self.closure.clone());
+        closure.define("this", LiteralValue::Instance(instance.clone()))?;
         Self {
             closure,
             ..self.clone()
@@ -78,23 +75,16 @@ impl Callable for Function {
 
     #[throws(RuntimeError)]
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LiteralValue>) -> LiteralValue {
-        let environment = EnvironmentImpl::nested(self.closure.clone());
+        let mut environment = EnvironmentImpl::nested(self.closure.clone());
         for (param, arg) in self.parameters.iter().zip(arguments.iter()) {
-            environment
-                .write()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in call")))? // @todo miette!
-                .define(param.lexeme(source()), arg.clone());
+            environment.define(param.lexeme(source()), arg.clone())?;
         }
         let ret = interpreter.execute_block(self.body.clone(), environment);
         if let Err(e) = ret {
             match e {
                 RuntimeError::ReturnValue(v) => {
                     if self.is_initializer {
-                        return self
-                            .closure
-                            .read()
-                            .expect("read lock in call")
-                            .get_at_by_name(0, "this")?;
+                        return self.closure.get_at_by_name(0, "this")?;
                     }
                     return v;
                 }
@@ -102,11 +92,7 @@ impl Callable for Function {
             }
         }
         if self.is_initializer {
-            return self
-                .closure
-                .read()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in call")))? // @todo miette!
-                .get_at_by_name(0, "this")?;
+            return self.closure.get_at_by_name(0, "this")?;
         }
         LiteralValue::Nil
     }

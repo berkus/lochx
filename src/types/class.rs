@@ -3,7 +3,7 @@ use {
         callable::{Callable, Function},
         error::RuntimeError,
         interpreter::Interpreter,
-        literal::LiteralValue,
+        literal::{LiteralValue, LochxCallable},
         runtime,
         scanner::Token,
     },
@@ -88,10 +88,10 @@ impl Callable for Class {
     #[throws(RuntimeError)]
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LiteralValue>) -> LiteralValue {
         let instance = LochxInstanceImpl::new(self.clone()).wrapped();
-        let init = self.find_method_by_name("init");
-        if init.is_some() {
-            init.unwrap().bind(&instance).call(interpreter, arguments)?;
-        }
+        self.find_method_by_name("init").map_or_else(
+            || Ok(LiteralValue::Nil),
+            |init| init.bind(&instance)?.call(interpreter, arguments),
+        )?;
         LiteralValue::Instance(instance)
     }
 }
@@ -113,11 +113,10 @@ impl LochxInstanceImpl {
         let key = name.lexeme(runtime::source());
         self.fields.get(key).cloned().map_or_else(
             || {
-                self.class.find_method(name.clone()).map(|f| {
-                    LiteralValue::Callable(crate::literal::LochxCallable::Function(Box::new(
-                        f.bind(&self.wrapped()),
-                    )))
-                })
+                let f = self.class.find_method(name.clone())?;
+                Ok(LiteralValue::Callable(LochxCallable::Function(Box::new(
+                    f.bind(&self.wrapped())?,
+                ))))
             },
             Ok,
         )?

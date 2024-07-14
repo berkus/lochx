@@ -2,7 +2,7 @@ use {
     crate::{
         callable::{self, Callable},
         class,
-        environment::{Environment, EnvironmentImpl},
+        environment::{Environment, EnvironmentImpl, Environmental},
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
         literal::{LiteralValue, LochxCallable},
@@ -10,7 +10,6 @@ use {
         scanner::{Token, TokenType},
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
-    anyhow::anyhow,
     culpa::{throw, throws},
     liso::{liso, OutputOnly},
     std::collections::HashMap,
@@ -25,8 +24,8 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new(out: OutputOnly) -> Self {
-        let env = EnvironmentImpl::new();
-        env.write().expect("write lock in new").define(
+        let mut env = EnvironmentImpl::new();
+        env.define(
             "clock",
             LiteralValue::Callable(LochxCallable::NativeFunction(Box::new(
                 callable::NativeFunction {
@@ -34,7 +33,8 @@ impl Interpreter {
                     body: callable::clock,
                 },
             ))),
-        );
+        )
+        .expect("oof");
         Self {
             out,
             globals: env.clone(),
@@ -84,19 +84,9 @@ impl Interpreter {
     fn look_up_variable(&mut self, token: &Token) -> LiteralValue {
         let distance = self.locals.get(token);
         if let Some(distance) = distance {
-            self.current_env
-                .read()
-                .map_err(|_| {
-                    RuntimeError::EnvironmentError(anyhow!("read lock in look_up_variable"))
-                })?
-                .get_at(*distance, token.clone())?
+            self.current_env.get_at(*distance, token.clone())?
         } else {
-            self.globals
-                .read()
-                .map_err(|_| {
-                    RuntimeError::EnvironmentError(anyhow!("read lock in look_up_variable"))
-                })?
-                .get(token.clone())?
+            self.globals.get(token.clone())?
         }
     }
 }
@@ -119,13 +109,7 @@ impl stmt::Visitor for Interpreter {
     #[throws(RuntimeError)]
     fn visit_vardecl_stmt(&mut self, stmt: &stmt::VarDecl) -> Self::ReturnType {
         let value = self.evaluate(&stmt.initializer)?;
-        self.current_env
-            .write()
-            .map_err(|_| {
-                RuntimeError::EnvironmentError(anyhow!("write lock in visit_vardecl_stmt"))
-                // @todo miette!
-            })?
-            .define(stmt.name.lexeme(source()), value);
+        self.current_env.define(stmt.name.lexeme(source()), value)?;
     }
 
     #[throws(RuntimeError)]
@@ -162,16 +146,10 @@ impl stmt::Visitor for Interpreter {
             closure: EnvironmentImpl::nested(self.current_env.clone()),
             is_initializer: false,
         };
-        self.current_env
-            .write()
-            .map_err(|_| {
-                RuntimeError::EnvironmentError(anyhow!("write lock in visit_fundecl_stmt"))
-                // @todo miette!
-            })?
-            .define(
-                stmt.name.lexeme(source()),
-                LiteralValue::Callable(LochxCallable::Function(Box::new(fun))),
-            );
+        self.current_env.define(
+            stmt.name.lexeme(source()),
+            LiteralValue::Callable(LochxCallable::Function(Box::new(fun))),
+        )?;
     }
 
     #[throws(RuntimeError)]
@@ -200,12 +178,7 @@ impl stmt::Visitor for Interpreter {
         };
 
         self.current_env
-            .write()
-            .map_err(|_| {
-                RuntimeError::EnvironmentError(anyhow!("write lock in visit_class_stmt"))
-                // @todo miette!
-            })?
-            .define(stmt.name.lexeme(source()), LiteralValue::Nil);
+            .define(stmt.name.lexeme(source()), LiteralValue::Nil)?;
         let mut methods = HashMap::<String, callable::Function>::new();
         for m in stmt.methods.iter().map(|m| m.function()) {
             let fun = callable::Function {
@@ -216,16 +189,10 @@ impl stmt::Visitor for Interpreter {
             methods.insert(m.name.lexeme(source()).into(), fun);
         }
         let class = class::Class::new(stmt.name.lexeme(source()).into(), superclass, methods);
-        self.current_env
-            .write()
-            .map_err(|_| {
-                RuntimeError::EnvironmentError(anyhow!("write lock in visit_class_stmt"))
-                // @todo miette!
-            })?
-            .assign(
-                stmt.name.clone(),
-                LiteralValue::Callable(LochxCallable::Class(Box::new(class))),
-            )?;
+        self.current_env.assign(
+            stmt.name.clone(),
+            LiteralValue::Callable(LochxCallable::Class(Box::new(class))),
+        )?;
     }
 }
 
@@ -325,22 +292,9 @@ impl expr::Visitor for Interpreter {
         let distance = self.locals.get(&expr.name);
         if let Some(d) = distance {
             self.current_env
-                .write()
-                .map_err(|_| {
-                    RuntimeError::EnvironmentError(anyhow!(
-                        "write lock in visit_assign_expr.current_env"
-                    ))
-                })?
                 .assign_at(*d, expr.name.clone(), value.clone())?;
         } else {
-            self.globals
-                .write()
-                .map_err(|_| {
-                    RuntimeError::EnvironmentError(anyhow!(
-                        "write lock in visit_assign_expr.globals"
-                    ))
-                })?
-                .assign(expr.name.clone(), value.clone())?;
+            self.globals.assign(expr.name.clone(), value.clone())?;
         }
         value
     }
