@@ -48,6 +48,8 @@ pub enum RuntimeError {
     RecursiveClass(Token),
     #[error("Superclass must be a class.")]
     NotAClassBase(Token),
+    #[error("Invalid use of `super`.")]
+    InvalidSuper(Token, &'static str), // note
     #[error("Generic error.")]
     GenericError,
     #[error("Clock may have gone backwards.")]

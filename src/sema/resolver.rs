@@ -33,6 +33,7 @@ enum FunctionType {
 enum ClassType {
     None,
     Class,
+    SubClass,
 }
 
 pub struct Resolver<'interp> {
@@ -222,7 +223,17 @@ impl expr::Visitor for Resolver<'_> {
 
     #[throws(RuntimeError)]
     fn visit_super_expr(&mut self, expr: &expr::Super) -> Self::ReturnType {
-        self.resolve_local(&expr.keyword);
+        match self.current_class {
+            ClassType::None => throw!(RuntimeError::InvalidSuper(
+                expr.keyword.clone(),
+                "Can't use `super` outside of a class."
+            )),
+            ClassType::Class => throw!(RuntimeError::InvalidSuper(
+                expr.keyword.clone(),
+                "Can't use `super` without a superclass."
+            )),
+            _ => self.resolve_local(&expr.keyword),
+        }
     }
 }
 
@@ -311,6 +322,8 @@ impl stmt::Visitor for Resolver<'_> {
             if superc.name.lexeme(runtime::source()) == stmt.name.lexeme(runtime::source()) {
                 throw!(RuntimeError::RecursiveClass(superc.name.clone()));
             }
+
+            self.current_class = ClassType::SubClass;
 
             self.resolve_expr(&stmt.superclass.clone().unwrap())?;
             self.begin_scope();

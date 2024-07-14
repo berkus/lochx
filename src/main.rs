@@ -184,6 +184,11 @@ pub fn error(runtime_error: RuntimeError, message: &str) {
             format!("{runtime_error}"),
             "".into(),
         ),
+        RuntimeError::InvalidSuper(ref t, note) => (
+            t.position.span.clone(),
+            format!("{runtime_error}"),
+            note.into(),
+        ),
         RuntimeError::UndefinedVariable(ref t, _) => (
             t.position.span.clone(),
             format!("{runtime_error}"),
