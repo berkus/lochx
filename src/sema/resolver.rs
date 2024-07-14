@@ -219,6 +219,11 @@ impl expr::Visitor for Resolver<'_> {
         }
         self.resolve_local(&expr.keyword);
     }
+
+    #[throws(RuntimeError)]
+    fn visit_super_expr(&mut self, expr: &expr::Super) -> Self::ReturnType {
+        self.resolve_local(&expr.keyword);
+    }
 }
 
 impl stmt::Visitor for Resolver<'_> {
@@ -308,6 +313,8 @@ impl stmt::Visitor for Resolver<'_> {
             }
 
             self.resolve_expr(&stmt.superclass.clone().unwrap())?;
+            self.begin_scope();
+            self.define_by_name("super");
         }
 
         self.begin_scope();
@@ -324,6 +331,10 @@ impl stmt::Visitor for Resolver<'_> {
         }
 
         self.end_scope();
+
+        if let Some(expr::Expr::Variable(_)) = &stmt.superclass {
+            self.end_scope();
+        }
 
         self.current_class = enclosing_class;
     }

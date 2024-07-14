@@ -17,6 +17,7 @@ pub enum Expr {
     Get(Getter),
     Set(Setter),
     This(This),
+    Super(Super),
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +86,12 @@ pub struct This {
     pub keyword: Token,
 }
 
+#[derive(Debug, Clone)]
+pub struct Super {
+    pub keyword: Token,
+    pub method: Token,
+}
+
 /// Expressions visitor.
 pub trait Visitor {
     type ReturnType;
@@ -112,6 +119,8 @@ pub trait Visitor {
     fn visit_set_expr(&mut self, expr: &Setter) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_this_expr(&mut self, expr: &This) -> Self::ReturnType;
+    #[throws(RuntimeError)]
+    fn visit_super_expr(&mut self, expr: &Super) -> Self::ReturnType;
 }
 
 /// Expression visitor acceptor.
@@ -135,6 +144,7 @@ impl Acceptor for Expr {
             Expr::Get(p) => p.accept(visitor)?,
             Expr::Set(p) => p.accept(visitor)?,
             Expr::This(t) => t.accept(visitor)?,
+            Expr::Super(s) => s.accept(visitor)?,
         }
     }
 }
@@ -213,5 +223,12 @@ impl Acceptor for This {
     #[throws(RuntimeError)]
     fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
         visitor.visit_this_expr(self)?
+    }
+}
+
+impl Acceptor for Super {
+    #[throws(RuntimeError)]
+    fn accept<V: Visitor>(&self, visitor: &mut V) -> V::ReturnType {
+        visitor.visit_super_expr(self)?
     }
 }

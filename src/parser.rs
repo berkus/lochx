@@ -58,7 +58,7 @@ pub struct Parser {
 /// parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 /// arguments      → expression ( "," expression )* ;
 /// primary        → NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil"
-///                | "(" expression ")" ;
+///                | "(" expression ")" | "super" "." IDENTIFIER ;
 /// ```
 /// Grammar productions are in order of increasing precedence from top to bottom.
 impl Parser {
@@ -590,6 +590,12 @@ impl Parser {
                 ),
             });
         }
+        if self.match_any(vec![TokenType::KwSuper]) {
+            let keyword = self.previous();
+            self.consume(TokenType::Dot, "Expected '.' after 'super'.")?;
+            let method = self.consume(TokenType::Identifier, "Expected superclass method name.")?;
+            return Expr::Super(expr::Super { keyword, method });
+        }
         if self.match_any(vec![TokenType::KwThis]) {
             return Expr::This(expr::This {
                 keyword: self.previous(),
@@ -608,7 +614,6 @@ impl Parser {
                 expr: Box::new(expr),
             });
         }
-        // @todo Throw ParseError with location info
         throw!(RuntimeError::ExpectedExpression(self.peek()));
     }
 

@@ -1,7 +1,7 @@
 use {
     crate::{
         callable::{self, Callable},
-        class,
+        class::{self, Class, LochxInstance},
         environment::{Environment, EnvironmentImpl, Environmental},
         error::RuntimeError,
         expr::{self, Acceptor as ExprAcceptor, Expr},
@@ -177,6 +177,16 @@ impl stmt::Visitor for Interpreter {
 
         self.current_env
             .define(stmt.name.lexeme(source()), LiteralValue::Nil)?;
+        let previous = if superclass.is_some() {
+            let previous = self.current_env.clone();
+            self.current_env = EnvironmentImpl::nested(self.current_env.clone());
+            self.current_env
+                .define("super", superclass.clone().unwrap().into())?;
+            previous
+        } else {
+            self.current_env.clone()
+        };
+
         let mut methods = HashMap::<String, callable::Function>::new();
         for m in stmt.methods.iter().map(|m| m.function()) {
             let fun = callable::Function {
@@ -187,6 +197,7 @@ impl stmt::Visitor for Interpreter {
             methods.insert(m.name.lexeme(source()).into(), fun);
         }
         let class = class::Class::new(stmt.name.lexeme(source()).into(), superclass, methods);
+        self.current_env = previous;
         self.current_env.assign(stmt.name.clone(), class.into())?;
     }
 }
@@ -372,6 +383,25 @@ impl expr::Visitor for Interpreter {
     #[throws(RuntimeError)]
     fn visit_this_expr(&mut self, expr: &expr::This) -> Self::ReturnType {
         self.look_up_variable(&expr.keyword)?
+    }
+
+    #[throws(RuntimeError)]
+    fn visit_super_expr(&mut self, expr: &expr::Super) -> Self::ReturnType {
+        let distance = self.locals.get(&expr.keyword);
+        if let Some(distance) = distance {
+            let superclass: Class = self
+                .current_env
+                .get_at_by_name(*distance, "super")?
+                .try_into()?;
+            let object: LochxInstance = self
+                .current_env
+                .get_at_by_name(distance - 1, "this")?
+                .try_into()?;
+            let method = superclass.find_method(expr.method.clone())?;
+            method.bind(&object)?.into()
+        } else {
+            throw!(RuntimeError::GenericError)
+        }
     }
 }
 

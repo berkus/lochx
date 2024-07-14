@@ -204,4 +204,9 @@ impl expr::Visitor for AstPrinter {
     fn visit_this_expr(&mut self, expr: &expr::This) -> Self::ReturnType {
         format!("{}", expr.keyword)
     }
+
+    #[throws(RuntimeError)]
+    fn visit_super_expr(&mut self, expr: &expr::Super) -> Self::ReturnType {
+        format!("(super.{})", expr.method)
+    }
 }

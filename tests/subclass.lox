@@ -1,10 +1,17 @@
 class Doughnut {
-    // General doughnut stuff...
+    cook() {
+        print "Fry until golden brown.";
+    }
+
     first() { print "Base method"; }
 }
 
 class BostonCream < Doughnut {
-    // Boston Cream-specific stuff...
+    cook() {
+        super.cook();
+        print "Pipe full of custard and coat with chocolate.";
+    }
+
     second() { print "Derived method"; }
 }
 
@@ -18,3 +25,27 @@ class BostonCream < Doughnut {
 
 BostonCream().first();
 BostonCream().second();
+
+BostonCream().cook();
+
+//print super;
+
+class A {
+  method() {
+    print "A method";
+  }
+}
+
+class B < A {
+  method() {
+    print "B method";
+  }
+
+  test() {
+    super.method();
+  }
+}
+
+class C < B {}
+
+C().test();
