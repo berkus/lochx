@@ -342,7 +342,7 @@ impl expr::Visitor for Interpreter {
                     ))
                 }
 
-                let mut arguments = vec![];
+                let mut arguments = Vec::with_capacity(expr.arguments.len());
                 for arg in expr.arguments.iter() {
                     arguments.push(self.evaluate(arg)?);
                 }
