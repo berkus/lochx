@@ -129,11 +129,9 @@ fn run(interpreter: &mut Interpreter, source: &str, scan_offset: usize) {
 
     let mut printer = AstPrinter::new();
 
-    OUT.get().expect("Must be set at start").wrapln(liso!(
-        fg = blue,
-        &printer.print_stmt(ast.clone())?,
-        fg = none
-    ));
+    let ast_printable = printer.print_stmt(ast.clone())?;
+
+    wrapln(ast_printable);
 
     let mut resolver = Resolver::new(interpreter);
     let resolved = resolver.resolve(&ast);
