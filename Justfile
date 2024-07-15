@@ -1,7 +1,11 @@
 _default:
     @just --list
 
-# Collect profiling information using samply, output to profile.json
+# Run the old AST-traversing interpreter (run without args for repl)
+interpreter FILE='':
+    cargo run --release -p interpreter -- {{FILE}}
+
+# (broken) Collect profiling information using samply, output to profile.json
 samply:
     cargo build -Z build-std --target aarch64-apple-darwin --release
     samply record --save-only -o profile.json ./target/aarch64-apple-darwin/release/lochx tests/slow.lox
@@ -12,6 +16,6 @@ samply:
 sview:
     samply load profile.json.gz
 
-# Collect profiling information using flamegraph, output to flamegraph.svg
+# (broken) Collect profiling information using flamegraph, output to flamegraph.svg
 flamegraph:
     sudo cargo flamegraph -- tests/slow.lox
