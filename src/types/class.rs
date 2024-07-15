@@ -114,7 +114,7 @@ impl LochxInstanceImpl {
         self.fields.get(key).cloned().map_or_else(
             || {
                 let f = self.class.find_method(name.clone())?;
-                Ok(f.bind(&self.wrapped())?.into())
+                Ok::<LiteralValue, RuntimeError>(f.bind(&self.wrapped())?.into())
             },
             Ok,
         )?

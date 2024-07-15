@@ -1,6 +1,5 @@
 use {
     crate::{error::RuntimeError, literal::LiteralValue, runtime::source, scanner::Token},
-    anyhow::anyhow,
     culpa::{throw, throws},
     std::{
         collections::HashMap,
@@ -32,7 +31,7 @@ impl Environmental for Environment {
     fn define(&mut self, name: impl AsRef<str>, value: LiteralValue) {
         self.write()
             .map_err(|_| {
-                RuntimeError::EnvironmentError(anyhow!("write lock in define"))
+                RuntimeError::EnvironmentError("write lock in define")
                 // @todo miette!
             })?
             .define(name, value)?;
@@ -41,42 +40,42 @@ impl Environmental for Environment {
     #[throws(RuntimeError)]
     fn get(&self, name: Token) -> LiteralValue {
         self.read()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))? // @todo miette!
+            .map_err(|_| RuntimeError::EnvironmentError("read lock in get"))? // @todo miette!
             .get(name)?
     }
 
     #[throws(RuntimeError)]
     fn get_by_name(&self, name: impl AsRef<str>) -> LiteralValue {
         self.read()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get_by_name")))? // @todo miette!
+            .map_err(|_| RuntimeError::EnvironmentError("read lock in get_by_name"))? // @todo miette!
             .get_by_name(name)?
     }
 
     #[throws(RuntimeError)]
     fn get_at(&self, distance: usize, name: Token) -> LiteralValue {
         self.read()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get_at")))? // @todo miette!
+            .map_err(|_| RuntimeError::EnvironmentError("read lock in get_at"))? // @todo miette!
             .get_at(distance, name)?
     }
 
     #[throws(RuntimeError)]
     fn get_at_by_name(&self, distance: usize, name: impl AsRef<str>) -> LiteralValue {
         self.read()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get_at_by_name")))? // @todo miette!
+            .map_err(|_| RuntimeError::EnvironmentError("read lock in get_at_by_name"))? // @todo miette!
             .get_at_by_name(distance, name)?
     }
 
     #[throws(RuntimeError)]
     fn assign(&mut self, name: Token, value: LiteralValue) {
         self.write()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign")))? // @todo miette!
+            .map_err(|_| RuntimeError::EnvironmentError("write lock in assign"))? // @todo miette!
             .assign(name, value)?
     }
 
     #[throws(RuntimeError)]
     fn assign_at(&mut self, distance: usize, name: Token, value: LiteralValue) {
         self.write()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign_at")))? // @todo miette!
+            .map_err(|_| RuntimeError::EnvironmentError("write lock in assign_at"))? // @todo miette!
             .assign_at(distance, name, value)?
     }
 }
@@ -107,10 +106,11 @@ impl EnvironmentImpl {
         let mut parent = self.enclosing.clone();
         for _ in distance..1 {
             if let Some(p) = parent {
-                let p = p.read().map_err(|_| {
-                    RuntimeError::EnvironmentError(anyhow!("read lock in ancestor"))
-                })?; // @todo miette!
-                parent = p.enclosing.clone();
+                parent = p
+                    .read()
+                    .map_err(|_| RuntimeError::EnvironmentError("read lock in ancestor"))? // @todo miette!
+                    .enclosing
+                    .clone();
             }
         }
         if parent.is_none() {
@@ -135,7 +135,7 @@ impl Environmental for EnvironmentImpl {
         if let Some(parent) = &self.enclosing {
             return parent
                 .read()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))? // @todo miette!
+                .map_err(|_| RuntimeError::EnvironmentError("read lock in get"))? // @todo miette!
                 .get(name)?;
         }
         throw!(RuntimeError::UndefinedVariable(
@@ -153,7 +153,7 @@ impl Environmental for EnvironmentImpl {
         if let Some(parent) = &self.enclosing {
             return parent
                 .read()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get")))? // @todo miette!
+                .map_err(|_| RuntimeError::EnvironmentError("read lock in get"))? // @todo miette!
                 .get_by_name(name)?;
         }
         throw!(RuntimeError::UndefinedVariableName(name.as_ref().into(),))
@@ -166,7 +166,7 @@ impl Environmental for EnvironmentImpl {
         }
         self.ancestor(distance)?
             .read()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get_at")))? // @todo miette!
+            .map_err(|_| RuntimeError::EnvironmentError("read lock in get_at"))? // @todo miette!
             .get(name)?
     }
 
@@ -177,7 +177,7 @@ impl Environmental for EnvironmentImpl {
         }
         self.ancestor(distance)?
             .read()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("read lock in get_at")))? // @todo miette!
+            .map_err(|_| RuntimeError::EnvironmentError("read lock in get_at"))? // @todo miette!
             .get_by_name(name)?
     }
 
@@ -193,7 +193,7 @@ impl Environmental for EnvironmentImpl {
         if let Some(parent) = &self.enclosing {
             parent
                 .write()
-                .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign")))? // @todo miette!
+                .map_err(|_| RuntimeError::EnvironmentError("write lock in assign"))? // @todo miette!
                 .assign(name, value)?;
             return;
         }
@@ -210,7 +210,7 @@ impl Environmental for EnvironmentImpl {
         }
         self.ancestor(distance)?
             .write()
-            .map_err(|_| RuntimeError::EnvironmentError(anyhow!("write lock in assign_at")))? // @todo miette!
+            .map_err(|_| RuntimeError::EnvironmentError("write lock in assign_at"))? // @todo miette!
             .assign(name, value)?;
     }
 }

@@ -55,5 +55,9 @@ pub enum RuntimeError {
     #[error("Clock may have gone backwards.")]
     ClockBackwards,
     #[error("Cannot obtain the environment due to {0}.")]
-    EnvironmentError(anyhow::Error),
+    EnvironmentError(&'static str),
+    #[error("Cannot read source file {0}.")]
+    IoError(#[from] std::io::Error),
+    #[error("Usage: {0}.")]
+    Usage(miette::ErrReport),
 }

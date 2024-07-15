@@ -3,13 +3,12 @@
 
 use {
     crate::{ast_printer::AstPrinter, parser::Parser},
-    anyhow::{anyhow, Error},
     argh::FromArgs,
     culpa::{throw, throws},
     error::RuntimeError,
     interpreter::Interpreter,
     liso::{liso, OutputOnly, Response},
-    miette::{LabeledSpan, MietteDiagnostic, Report},
+    miette::{miette, LabeledSpan, MietteDiagnostic, Report},
     sema::resolver::Resolver,
     std::sync::OnceLock,
 };
@@ -41,7 +40,7 @@ struct Args {
     script: Vec<String>,
 }
 
-#[throws]
+#[throws(RuntimeError)]
 fn main() {
     let args: Args = argh::from_env();
 
@@ -51,7 +50,7 @@ fn main() {
     }
 
     if args.script.len() > 1 {
-        throw!(anyhow!("Usage: lochx [script file]"));
+        throw!(RuntimeError::Usage(miette!("lochx [script file]")));
     }
 
     miette::set_hook(Box::new(|_| {
@@ -77,7 +76,7 @@ fn main() {
 
 static OUT: OnceLock<OutputOnly> = OnceLock::new();
 
-#[throws]
+#[throws(RuntimeError)]
 fn run_repl(mut io: liso::InputOutput) {
     let mut interpreter = Interpreter::new(io.clone_output());
     runtime::set_source("");
@@ -101,7 +100,7 @@ fn run_repl(mut io: liso::InputOutput) {
     }
 }
 
-#[throws]
+#[throws(RuntimeError)]
 fn run_script(io: liso::InputOutput, script: &str) {
     let contents = std::fs::read_to_string(script)?;
     let mut interpreter = Interpreter::new(io.clone_output());
@@ -109,7 +108,7 @@ fn run_script(io: liso::InputOutput, script: &str) {
     run(&mut interpreter, &contents, 0)?
 }
 
-#[throws]
+#[throws(RuntimeError)]
 fn run(interpreter: &mut Interpreter, source: &str, scan_offset: usize) {
     use crate::scanner::Scanner;
 
