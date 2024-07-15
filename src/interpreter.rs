@@ -187,7 +187,7 @@ impl stmt::Visitor for Interpreter {
             self.current_env.clone()
         };
 
-        let mut methods = HashMap::<String, callable::Function>::new();
+        let mut methods = HashMap::<String, callable::Function>::with_capacity(stmt.methods.len());
         for m in stmt.methods.iter().map(|m| m.function()) {
             let fun = callable::Function {
                 closure: self.current_env.clone(),
