@@ -9,6 +9,7 @@ use {
         stmt::{self, Stmt},
     },
     culpa::{throw, throws},
+    std::sync::Arc,
 };
 
 pub struct Parser {
@@ -270,7 +271,7 @@ impl Parser {
 
         let body = Stmt::While(stmt::WhileStmt {
             condition,
-            body: Box::new(body),
+            body: Arc::new(body),
         });
 
         let body = if let Some(initializer) = initializer {
@@ -286,9 +287,9 @@ impl Parser {
         self.consume(TokenType::LeftParen, "Expected '(' after 'if'.")?;
         let expr = self.expression()?;
         self.consume(TokenType::RightParen, "Expected ')' after 'if' condition.")?;
-        let then_branch = Box::new(self.statement()?);
+        let then_branch = Arc::new(self.statement()?);
         let else_branch = if self.match_any(vec![TokenType::KwElse]) {
-            Some(Box::new(self.statement()?))
+            Some(Arc::new(self.statement()?))
         } else {
             None
         };
@@ -326,7 +327,7 @@ impl Parser {
             TokenType::RightParen,
             "Expected ')' after 'while' condition.",
         )?;
-        let body = Box::new(self.statement()?);
+        let body = Arc::new(self.statement()?);
         Stmt::While(stmt::WhileStmt { condition, body })
     }
 
@@ -369,14 +370,14 @@ impl Parser {
                 Expr::Variable(expr::Var { name, .. }) => {
                     return Expr::Assign(expr::Assign {
                         name,
-                        value: Box::new(value),
+                        value: Arc::new(value),
                     })
                 }
                 Expr::Get(expr::Getter { name, object }) => {
                     return Expr::Set(expr::Setter {
                         name,
                         object,
-                        value: Box::new(value),
+                        value: Arc::new(value),
                     })
                 }
                 _ => {
@@ -399,8 +400,8 @@ impl Parser {
             let right = self.logic_and()?;
             expr = Expr::Logical(expr::Logical {
                 op: op.clone(),
-                left: Box::new(expr),
-                right: Box::new(right),
+                left: Arc::new(expr),
+                right: Arc::new(right),
             });
         }
 
@@ -416,8 +417,8 @@ impl Parser {
             let right = self.equality()?;
             expr = Expr::Logical(expr::Logical {
                 op: op.clone(),
-                left: Box::new(expr),
-                right: Box::new(right),
+                left: Arc::new(expr),
+                right: Arc::new(right),
             });
         }
 
@@ -433,8 +434,8 @@ impl Parser {
             let right = self.comparison()?;
             expr = Expr::Binary(expr::Binary {
                 op: op.clone(),
-                left: Box::new(expr),
-                right: Box::new(right),
+                left: Arc::new(expr),
+                right: Arc::new(right),
             });
         }
 
@@ -455,8 +456,8 @@ impl Parser {
             let right = self.term()?;
             expr = Expr::Binary(expr::Binary {
                 op: op.clone(),
-                left: Box::new(expr),
-                right: Box::new(right),
+                left: Arc::new(expr),
+                right: Arc::new(right),
             });
         }
 
@@ -472,8 +473,8 @@ impl Parser {
             let right = self.factor()?;
             expr = Expr::Binary(expr::Binary {
                 op: op.clone(),
-                left: Box::new(expr),
-                right: Box::new(right),
+                left: Arc::new(expr),
+                right: Arc::new(right),
             });
         }
 
@@ -489,8 +490,8 @@ impl Parser {
             let right = self.unary()?;
             expr = Expr::Binary(expr::Binary {
                 op: op.clone(),
-                left: Box::new(expr),
-                right: Box::new(right),
+                left: Arc::new(expr),
+                right: Arc::new(right),
             });
         }
 
@@ -504,7 +505,7 @@ impl Parser {
             let right = self.unary()?;
             return Expr::Unary(expr::Unary {
                 op: op.clone(),
-                right: Box::new(right),
+                right: Arc::new(right),
             });
         }
 
@@ -522,7 +523,7 @@ impl Parser {
                 let name = self.consume(TokenType::Identifier, "Expect property name after '.'")?;
                 expr = Expr::Get(expr::Getter {
                     name,
-                    object: Box::new(expr),
+                    object: Arc::new(expr),
                 });
             } else {
                 break;
@@ -549,7 +550,7 @@ impl Parser {
         let paren = self.consume(TokenType::RightParen, "Expected ')' after arguments.")?;
 
         Expr::Call(expr::Call {
-            callee: Box::new(callee),
+            callee: Arc::new(callee),
             paren,
             arguments,
         })
@@ -611,7 +612,7 @@ impl Parser {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expected ')' after expression.")?;
             return Expr::Grouping(expr::Grouping {
-                expr: Box::new(expr),
+                expr: Arc::new(expr),
             });
         }
         throw!(RuntimeError::ExpectedExpression(self.peek()));

@@ -18,7 +18,7 @@ use {
 #[derive(Debug, Clone)]
 pub struct Class {
     pub name: String,
-    superclass: Option<Box<Class>>,
+    superclass: Option<Arc<Class>>,
     methods: HashMap<String, Function>,
 }
 
@@ -47,7 +47,7 @@ pub struct LochxInstanceImpl {
 impl Class {
     pub fn new(
         name: String,
-        superclass: Option<Box<Class>>,
+        superclass: Option<Arc<Class>>,
         methods: HashMap<String, Function>,
     ) -> Self {
         Self {

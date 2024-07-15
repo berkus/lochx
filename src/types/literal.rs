@@ -5,6 +5,7 @@ use {
         error::RuntimeError,
     },
     culpa::throw,
+    std::sync::Arc,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -20,9 +21,9 @@ pub enum LiteralValue {
 
 #[derive(Debug, Clone)]
 pub enum LochxCallable {
-    Function(Box<Function>),
-    NativeFunction(Box<NativeFunction>),
-    Class(Box<Class>),
+    Function(Arc<Function>),
+    NativeFunction(Arc<NativeFunction>),
+    Class(Arc<Class>),
 }
 
 impl std::fmt::Display for LiteralValue {
@@ -59,29 +60,29 @@ impl LiteralValue {
 
 impl From<Class> for LiteralValue {
     fn from(value: Class) -> Self {
-        Self::Callable(LochxCallable::Class(Box::new(value)))
+        Self::Callable(LochxCallable::Class(Arc::new(value)))
     }
 }
 
-impl From<Box<Class>> for LiteralValue {
-    fn from(value: Box<Class>) -> Self {
+impl From<Arc<Class>> for LiteralValue {
+    fn from(value: Arc<Class>) -> Self {
         Self::Callable(LochxCallable::Class(value))
     }
 }
 
 impl From<Function> for LiteralValue {
     fn from(value: Function) -> Self {
-        Self::Callable(LochxCallable::Function(Box::new(value)))
+        Self::Callable(LochxCallable::Function(Arc::new(value)))
     }
 }
 
-impl From<Box<Function>> for LiteralValue {
-    fn from(value: Box<Function>) -> Self {
+impl From<Arc<Function>> for LiteralValue {
+    fn from(value: Arc<Function>) -> Self {
         Self::Callable(LochxCallable::Function(value))
     }
 }
 
-impl TryFrom<LiteralValue> for Class {
+impl TryFrom<LiteralValue> for Arc<Class> {
     type Error = RuntimeError;
 
     fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
@@ -90,14 +91,14 @@ impl TryFrom<LiteralValue> for Class {
                 LiteralValue::Callable(c) => c,
                 _ => throw!(RuntimeError::GenericError),
             } {
-                LochxCallable::Class(f) => *f,
+                LochxCallable::Class(f) => f,
                 _ => throw!(RuntimeError::GenericError),
             },
         )
     }
 }
 
-impl TryFrom<LiteralValue> for Function {
+impl TryFrom<LiteralValue> for Arc<Function> {
     type Error = RuntimeError;
 
     fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
@@ -106,7 +107,7 @@ impl TryFrom<LiteralValue> for Function {
                 LiteralValue::Callable(c) => c,
                 _ => throw!(RuntimeError::GenericError),
             } {
-                LochxCallable::Function(f) => *f,
+                LochxCallable::Function(f) => f,
                 _ => throw!(RuntimeError::GenericError),
             },
         )

@@ -1,6 +1,7 @@
 use {
     crate::{error::RuntimeError, literal::LiteralValue, scanner::Token},
     culpa::throws,
+    std::sync::Arc,
 };
 
 /// Expression AST node.
@@ -23,26 +24,26 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub struct Unary {
     pub op: Token,
-    pub right: Box<Expr>,
+    pub right: Arc<Expr>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Binary {
-    pub left: Box<Expr>,
+    pub left: Arc<Expr>,
     pub op: Token,
-    pub right: Box<Expr>,
+    pub right: Arc<Expr>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Logical {
-    pub left: Box<Expr>,
+    pub left: Arc<Expr>,
     pub op: Token,
-    pub right: Box<Expr>,
+    pub right: Arc<Expr>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Grouping {
-    pub expr: Box<Expr>,
+    pub expr: Arc<Expr>,
 }
 
 #[derive(Debug, Clone)]
@@ -58,12 +59,12 @@ pub struct Var {
 #[derive(Debug, Clone)]
 pub struct Assign {
     pub name: Token,
-    pub value: Box<Expr>,
+    pub value: Arc<Expr>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Call {
-    pub callee: Box<Expr>,
+    pub callee: Arc<Expr>,
     pub paren: Token,
     pub arguments: Vec<Expr>,
 }
@@ -71,14 +72,14 @@ pub struct Call {
 #[derive(Debug, Clone)]
 pub struct Getter {
     pub name: Token,
-    pub object: Box<Expr>,
+    pub object: Arc<Expr>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Setter {
     pub name: Token,
-    pub object: Box<Expr>,
-    pub value: Box<Expr>,
+    pub object: Arc<Expr>,
+    pub value: Arc<Expr>,
 }
 
 #[derive(Debug, Clone)]
