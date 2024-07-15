@@ -1,0 +1,8 @@
+[build]
+target = "aarch64-apple-darwin"
+
+[rust]
+debuginfo-level = 1
+
+[unstable]
+build-std = ["core", "alloc", "std", "proc_macro"]
