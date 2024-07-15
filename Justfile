@@ -10,7 +10,7 @@ samply:
 
 # Load and view saved samply profile
 sview:
-    samply load profile.json
+    samply load profile.json.gz
 
 # Collect profiling information using flamegraph, output to flamegraph.svg
 flamegraph:
