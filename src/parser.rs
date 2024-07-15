@@ -89,7 +89,7 @@ impl Parser {
             crate::error(
                 RuntimeError::ParseError {
                     token: token.clone(),
-                    expected: TokenType::EOF,
+                    expected: TokenType::Eof,
                     message: format!("Unexpected declaration. {}", e),
                 },
                 "Declaration error",
@@ -274,12 +274,11 @@ impl Parser {
             body: Rc::new(body),
         });
 
-        let body = if let Some(initializer) = initializer {
+        if let Some(initializer) = initializer {
             Stmt::Block(vec![initializer, body])
         } else {
             body
-        };
-        body
+        }
     }
 
     #[throws(RuntimeError)]
@@ -680,7 +679,7 @@ impl Parser {
     }
 
     fn is_at_end(&self) -> bool {
-        self.peek().r#type == TokenType::EOF
+        self.peek().r#type == TokenType::Eof
     }
 
     // Don't borrow here to make code simpler, for speed we should get back to borrowing

@@ -107,7 +107,7 @@ impl Acceptor for Stmt {
                 crate::error(
                     RuntimeError::ParseError {
                         token: token.clone(),
-                        expected: crate::scanner::TokenType::EOF,
+                        expected: crate::scanner::TokenType::Eof,
                         message: "Parse error".into(),
                     },
                     "Synchronizing parse state",

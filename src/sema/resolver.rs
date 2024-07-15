@@ -107,8 +107,8 @@ impl<'interp> Resolver<'interp> {
 
     #[throws(RuntimeError)]
     fn declare(&mut self, name: &Token) {
-        match self.scopes.last_mut() {
-            Some(x) => match x.entry(name.lexeme(runtime::source()).into()) {
+        if let Some(x) = self.scopes.last_mut() {
+            match x.entry(name.lexeme(runtime::source()).into()) {
                 Entry::Occupied(_) => {
                     throw!(RuntimeError::DuplicateDeclaration(
                         name.clone(),
@@ -118,19 +118,15 @@ impl<'interp> Resolver<'interp> {
                 Entry::Vacant(e) => {
                     e.insert(false);
                 }
-            },
-            None => {}
+            }
         }
     }
 
     fn define_by_name(&mut self, name: impl AsRef<str>) {
-        match self.scopes.last_mut() {
-            Some(x) => {
-                x.entry(name.as_ref().into())
-                    .and_modify(|v| *v = true)
-                    .or_insert(true);
-            }
-            None => {}
+        if let Some(x) = self.scopes.last_mut() {
+            x.entry(name.as_ref().into())
+                .and_modify(|v| *v = true)
+                .or_insert(true);
         }
     }
 
@@ -179,7 +175,7 @@ impl expr::Visitor for Resolver<'_> {
     fn visit_var_expr(&mut self, expr: &expr::Var) -> Self::ReturnType {
         if let Some(item) = self.scopes.last() {
             if let Some(entry) = item.get(expr.name.lexeme(runtime::source())) {
-                if *entry == false {
+                if !(*entry) {
                     throw!(RuntimeError::InvalidAssignmentTarget(
                         expr.name.clone(),
                         "Can't read local variable in its own initializer",

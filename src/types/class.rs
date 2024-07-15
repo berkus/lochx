@@ -25,7 +25,7 @@ struct MethodsDisplayWrap(HashMap<String, Function>);
 impl std::fmt::Display for MethodsDisplayWrap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (name, method) in &self.0 {
-            write!(f, "{}->{}\n", name, method)?;
+            writeln!(f, "{}->{}", name, method)?;
         }
         Ok(())
     }
@@ -58,8 +58,7 @@ impl Class {
         self.methods.get(method_name.as_ref()).cloned().or(self
             .superclass
             .clone()
-            .map(|sc| sc.find_method_by_name(method_name))
-            .flatten())
+            .and_then(|sc| sc.find_method_by_name(method_name)))
     }
 
     #[throws(RuntimeError)]

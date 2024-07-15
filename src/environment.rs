@@ -137,7 +137,7 @@ impl Environmental for EnvironmentImpl {
         }
         throw!(RuntimeError::UndefinedVariable(
             name.clone(),
-            name.to_string().into()
+            name.to_string()
         ))
     }
 
@@ -182,7 +182,7 @@ impl Environmental for EnvironmentImpl {
     fn assign(&mut self, name: Token, value: LiteralValue) {
         if self.values.contains_key(&name.to_string()) {
             self.values
-                .entry(name.to_string().into())
+                .entry(name.to_string())
                 .and_modify(|e| *e = value);
             return;
         }

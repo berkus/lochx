@@ -313,10 +313,8 @@ impl expr::Visitor for Interpreter {
             if left.is_truthy() {
                 return left;
             }
-        } else {
-            if !left.is_truthy() {
-                return left;
-            }
+        } else if !left.is_truthy() {
+            return left;
         }
 
         self.evaluate(expr.right.as_ref())?
@@ -409,7 +407,7 @@ fn invalid_binop_arguments(op: Token) -> LiteralValue {
     crate::error(
         RuntimeError::ParseError {
             token: op.clone(),
-            expected: TokenType::EOF,
+            expected: TokenType::Eof,
             message: "Unexpected arguments".into(),
         },
         "Invalid arguments to binary expression",
@@ -421,7 +419,7 @@ fn invalid_unop_arguments(op: Token) -> LiteralValue {
     crate::error(
         RuntimeError::ParseError {
             token: op.clone(),
-            expected: TokenType::EOF,
+            expected: TokenType::Eof,
             message: "Unexpected arguments".into(),
         },
         "Invalid arguments to unary expression",

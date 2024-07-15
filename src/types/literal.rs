@@ -38,7 +38,7 @@ impl std::fmt::Display for LiteralValue {
                 LiteralValue::Bool(b) => b.to_string(),
                 LiteralValue::Callable(c) => match c {
                     LochxCallable::Function(f) => format!("<fun {}>", f.name),
-                    LochxCallable::NativeFunction(_) => format!("<native fun>"),
+                    LochxCallable::NativeFunction(_) => "<native fun>".to_string(),
                     LochxCallable::Class(c) => format!("<class {}>", c.name),
                 },
                 LiteralValue::Instance(i) => format!("<{} instance>", i.read().unwrap().class.name),

@@ -143,7 +143,7 @@ impl expr::Visitor for AstPrinter {
 
     #[throws(RuntimeError)]
     fn visit_grouping_expr(&mut self, expr: &expr::Grouping) -> Self::ReturnType {
-        self.parenthesize("group".to_string(), vec![expr.expr.clone()])?
+        self.parenthesize("group", vec![expr.expr.clone()])?
     }
 
     #[throws(RuntimeError)]
@@ -161,7 +161,7 @@ impl expr::Visitor for AstPrinter {
             }
             LiteralValue::Callable(c) => match c {
                 LochxCallable::Function(f) => format!("<fun {}>", f.name),
-                LochxCallable::NativeFunction(_nf) => format!("<native fun>"),
+                LochxCallable::NativeFunction(_nf) => "<native fun>".to_string(),
                 LochxCallable::Class(c) => format!("<class {}>", c.name),
             },
             LiteralValue::Instance(i) => format!("<{} instance>", i.read().unwrap().class.name),

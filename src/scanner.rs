@@ -75,7 +75,7 @@ impl Token {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
-    EOF,
+    Eof,
 
     // Single-character tokens.
     LeftParen,
@@ -182,7 +182,7 @@ impl<'a> Scanner<'a> {
             self.start_byte = self.current_byte;
             self.scan_token();
         }
-        self.add_token(TokenType::EOF);
+        self.add_token(TokenType::Eof);
         self.tokens.clone()
     }
 
@@ -285,7 +285,7 @@ impl<'a> Scanner<'a> {
         }
         self.current_char += 1;
         self.current_byte += expected.len_utf8();
-        return true;
+        true
     }
 
     fn peek(&self) -> char {
@@ -334,12 +334,12 @@ impl<'a> Scanner<'a> {
     }
 
     fn number(&mut self) {
-        while self.peek().is_digit(10) {
+        while self.peek().is_ascii_digit() {
             self.advance();
         }
-        if self.peek() == '.' && self.peek_next().is_digit(10) {
+        if self.peek() == '.' && self.peek_next().is_ascii_digit() {
             self.advance();
-            while self.peek().is_digit(10) {
+            while self.peek().is_ascii_digit() {
                 self.advance();
             }
         }
