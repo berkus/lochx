@@ -68,7 +68,7 @@ pub trait Visitor {
     #[throws(RuntimeError)]
     fn visit_fundecl_stmt(&mut self, stmt: &Function) -> Self::ReturnType;
     #[throws(RuntimeError)]
-    fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType;
+    fn visit_block_stmt(&mut self, stmts: &[Stmt]) -> Self::ReturnType;
     #[throws(RuntimeError)]
     fn visit_return_stmt(&mut self, stmt: &Return) -> Self::ReturnType;
     #[throws(RuntimeError)]

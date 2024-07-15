@@ -25,7 +25,7 @@ impl AstPrinter {
     }
 
     #[throws(RuntimeError)]
-    pub fn print_stmt(&mut self, statements: Vec<Stmt>) -> String {
+    pub fn print_stmt(&mut self, statements: &[Stmt]) -> String {
         let mut str = String::new();
         for stmt in statements {
             str += &stmt.accept(self)?
@@ -34,7 +34,7 @@ impl AstPrinter {
     }
 
     #[throws(RuntimeError)]
-    fn parenthesize(&mut self, name: impl AsRef<str>, exprs: Vec<Rc<Expr>>) -> String {
+    fn parenthesize(&mut self, name: impl AsRef<str>, exprs: &[Rc<Expr>]) -> String {
         let mut s = "(".to_string() + name.as_ref();
         for expr in exprs {
             s += " ";
@@ -50,15 +50,12 @@ impl stmt::Visitor for AstPrinter {
 
     #[throws(RuntimeError)]
     fn visit_print_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
-        format!(
-            "{};",
-            self.parenthesize("print", vec![Rc::new(stmt.clone())])?
-        )
+        format!("{};", self.parenthesize("print", &[Rc::new(stmt.clone())])?)
     }
 
     #[throws(RuntimeError)]
     fn visit_expression_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
-        format!("{};", self.parenthesize("", vec![Rc::new(stmt.clone())])?)
+        format!("{};", self.parenthesize("", &[Rc::new(stmt.clone())])?)
     }
 
     #[throws(RuntimeError)]
@@ -78,13 +75,13 @@ impl stmt::Visitor for AstPrinter {
         format!(
             "var {} = {};",
             stmt.name,
-            self.parenthesize("", vec![Rc::new(stmt.initializer.clone())])?
+            self.parenthesize("", &[Rc::new(stmt.initializer.clone())])?
         )
     }
 
     #[throws(RuntimeError)]
-    fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType {
-        format!("{{ {} }};", self.print_stmt(stmts.to_vec())?)
+    fn visit_block_stmt(&mut self, stmts: &[Stmt]) -> Self::ReturnType {
+        format!("{{ {} }};", self.print_stmt(stmts)?)
     }
 
     #[throws(RuntimeError)]
@@ -98,11 +95,7 @@ impl stmt::Visitor for AstPrinter {
 
     #[throws(RuntimeError)]
     fn visit_fundecl_stmt(&mut self, stmt: &callable::Function) -> Self::ReturnType {
-        format!(
-            "(fun {} {{ {} }})",
-            stmt.name,
-            self.print_stmt(stmt.body.clone())?
-        )
+        format!("(fun {} {{ {} }})", stmt.name, self.print_stmt(&stmt.body)?)
     }
 
     #[throws(RuntimeError)]
@@ -117,11 +110,7 @@ impl stmt::Visitor for AstPrinter {
 
     #[throws(RuntimeError)]
     fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Self::ReturnType {
-        format!(
-            "(class {} {})",
-            stmt.name,
-            self.print_stmt(stmt.methods.clone())?
-        )
+        format!("(class {} {})", stmt.name, self.print_stmt(&stmt.methods)?)
     }
 }
 
@@ -132,18 +121,18 @@ impl expr::Visitor for AstPrinter {
     fn visit_binary_expr(&mut self, expr: &expr::Binary) -> Self::ReturnType {
         self.parenthesize(
             expr.op.lexeme(source()),
-            vec![expr.left.clone(), expr.right.clone()],
+            &[expr.left.clone(), expr.right.clone()],
         )?
     }
 
     #[throws(RuntimeError)]
     fn visit_unary_expr(&mut self, expr: &expr::Unary) -> Self::ReturnType {
-        self.parenthesize(expr.op.lexeme(source()), vec![expr.right.clone()])?
+        self.parenthesize(expr.op.lexeme(source()), &[expr.right.clone()])?
     }
 
     #[throws(RuntimeError)]
     fn visit_grouping_expr(&mut self, expr: &expr::Grouping) -> Self::ReturnType {
-        self.parenthesize("group", vec![expr.expr.clone()])?
+        self.parenthesize("group", &[expr.expr.clone()])?
     }
 
     #[throws(RuntimeError)]
@@ -182,7 +171,7 @@ impl expr::Visitor for AstPrinter {
     fn visit_logical_expr(&mut self, expr: &expr::Logical) -> Self::ReturnType {
         self.parenthesize(
             expr.op.lexeme(source()),
-            vec![expr.left.clone(), expr.right.clone()],
+            &[expr.left.clone(), expr.right.clone()],
         )?
     }
 

@@ -128,7 +128,7 @@ fn run(interpreter: &mut Interpreter, source: &str, scan_offset: usize) {
 
     let mut printer = AstPrinter::new();
 
-    let ast_printable = printer.print_stmt(ast.clone())?;
+    let ast_printable = printer.print_stmt(&ast)?;
 
     wrapln(ast_printable);
 
@@ -140,7 +140,7 @@ fn run(interpreter: &mut Interpreter, source: &str, scan_offset: usize) {
         return;
     }
 
-    let value = interpreter.interpret(ast);
+    let value = interpreter.interpret(&ast);
 
     if let Err(e) = value {
         error(e, "Runtime error");

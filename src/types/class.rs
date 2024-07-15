@@ -82,7 +82,7 @@ impl Callable for Class {
     }
 
     #[throws(RuntimeError)]
-    fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LiteralValue>) -> LiteralValue {
+    fn call(&self, interpreter: &mut Interpreter, arguments: &[LiteralValue]) -> LiteralValue {
         let instance = LochxInstanceImpl::new(self.clone()).wrapped();
         self.find_method_by_name("init").map_or_else(
             || Ok(LiteralValue::Nil),

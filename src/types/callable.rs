@@ -56,7 +56,7 @@ impl Function {
 #[derive(Debug, Clone)]
 pub struct NativeFunction {
     pub arity: usize,
-    pub body: fn(&mut Interpreter, Vec<LiteralValue>) -> Result<LiteralValue, RuntimeError>,
+    pub body: fn(&mut Interpreter, &[LiteralValue]) -> Result<LiteralValue, RuntimeError>,
 }
 
 pub trait Callable {
@@ -64,7 +64,7 @@ pub trait Callable {
     fn call(
         &self,
         interpreter: &mut Interpreter,
-        arguments: Vec<LiteralValue>,
+        arguments: &[LiteralValue],
     ) -> Result<LiteralValue, RuntimeError>;
 }
 
@@ -74,12 +74,12 @@ impl Callable for Function {
     }
 
     #[throws(RuntimeError)]
-    fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LiteralValue>) -> LiteralValue {
+    fn call(&self, interpreter: &mut Interpreter, arguments: &[LiteralValue]) -> LiteralValue {
         let mut environment = EnvironmentImpl::nested(self.closure.clone());
         for (param, arg) in self.parameters.iter().zip(arguments.iter()) {
             environment.define(param.lexeme(source()), arg.clone())?;
         }
-        let ret = interpreter.execute_block(self.body.clone(), environment);
+        let ret = interpreter.execute_block(&self.body, environment);
         if let Err(e) = ret {
             match e {
                 RuntimeError::ReturnValue(v) => {
@@ -104,7 +104,7 @@ impl Callable for NativeFunction {
     }
 
     #[throws(RuntimeError)]
-    fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LiteralValue>) -> LiteralValue {
+    fn call(&self, interpreter: &mut Interpreter, arguments: &[LiteralValue]) -> LiteralValue {
         (self.body)(interpreter, arguments)?
     }
 }
@@ -112,7 +112,7 @@ impl Callable for NativeFunction {
 // Native functions
 
 #[throws(RuntimeError)]
-pub fn clock(_no_interp: &mut Interpreter, _no_args: Vec<LiteralValue>) -> LiteralValue {
+pub fn clock(_no_interp: &mut Interpreter, _no_args: &[LiteralValue]) -> LiteralValue {
     LiteralValue::Num(
         SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)

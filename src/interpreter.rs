@@ -44,9 +44,9 @@ impl Interpreter {
     }
 
     #[throws(RuntimeError)]
-    pub fn interpret(&mut self, statements: Vec<Stmt>) {
+    pub fn interpret(&mut self, statements: &[Stmt]) {
         for stmt in statements {
-            self.execute(&stmt)?;
+            self.execute(stmt)?;
         }
     }
 
@@ -63,11 +63,11 @@ impl Interpreter {
     }
 
     #[throws(RuntimeError)]
-    pub(super) fn execute_block(&mut self, stmts: Vec<Stmt>, env: Environment) {
+    pub(super) fn execute_block(&mut self, stmts: &[Stmt], env: Environment) {
         let previous = self.current_env.clone();
         self.current_env = env;
         for stmt in stmts {
-            if let Err(e) = self.execute(&stmt) {
+            if let Err(e) = self.execute(stmt) {
                 self.current_env = previous;
                 throw!(e);
             }
@@ -113,11 +113,8 @@ impl stmt::Visitor for Interpreter {
     }
 
     #[throws(RuntimeError)]
-    fn visit_block_stmt(&mut self, stmts: &Vec<Stmt>) -> Self::ReturnType {
-        self.execute_block(
-            stmts.to_vec(),
-            EnvironmentImpl::nested(self.current_env.clone()),
-        )?;
+    fn visit_block_stmt(&mut self, stmts: &[Stmt]) -> Self::ReturnType {
+        self.execute_block(stmts, EnvironmentImpl::nested(self.current_env.clone()))?;
     }
 
     #[throws(RuntimeError)]
@@ -344,7 +341,7 @@ impl expr::Visitor for Interpreter {
                 for arg in expr.arguments.iter() {
                     arguments.push(self.evaluate(arg)?);
                 }
-                return callable.call(self, arguments)?;
+                return callable.call(self, &arguments)?;
             }
             _ => throw!(RuntimeError::NotACallable(expr.paren.clone())),
         };

@@ -54,12 +54,12 @@ impl<'interp> Resolver<'interp> {
     }
 
     #[throws(RuntimeError)]
-    pub fn resolve(&mut self, stmts: &Vec<stmt::Stmt>) {
+    pub fn resolve(&mut self, stmts: &[stmt::Stmt]) {
         self.resolve_stmts(stmts)?
     }
 
     #[throws(RuntimeError)]
-    fn resolve_stmts(&mut self, statements: &Vec<stmt::Stmt>) {
+    fn resolve_stmts(&mut self, statements: &[stmt::Stmt]) {
         for statement in statements {
             self.resolve_stmt(statement)?;
         }
@@ -276,7 +276,7 @@ impl stmt::Visitor for Resolver<'_> {
     }
 
     #[throws(RuntimeError)]
-    fn visit_block_stmt(&mut self, stmts: &Vec<stmt::Stmt>) -> Self::ReturnType {
+    fn visit_block_stmt(&mut self, stmts: &[stmt::Stmt]) -> Self::ReturnType {
         self.begin_scope();
         self.resolve_stmts(stmts)?;
         self.end_scope();
