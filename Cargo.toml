@@ -1,5 +1,6 @@
 [workspace]
-members = ["interpreter"]
+members = ["vm", "interpreter"]
+default-members = ["vm"]
 resolver = "2"
 
 [profile.release]

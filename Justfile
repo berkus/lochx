@@ -1,6 +1,10 @@
 _default:
     @just --list
 
+# Run the new vm based lochx (run without args for repl)
+vm FILE='':
+    cargo run --release -p vm -- {{FILE}}
+
 # Run the old AST-traversing interpreter (run without args for repl)
 interpreter FILE='':
     cargo run --release -p interpreter -- {{FILE}}
