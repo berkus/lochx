@@ -1,13 +1,10 @@
 use {
     crate::{error::RuntimeError, literal::LiteralValue, runtime::source, scanner::Token},
     culpa::{throw, throws},
-    std::{
-        collections::HashMap,
-        sync::{Arc, RwLock},
-    },
+    std::{collections::HashMap, rc::Rc, sync::RwLock},
 };
 
-pub type Environment = Arc<RwLock<EnvironmentImpl>>;
+pub type Environment = Rc<RwLock<EnvironmentImpl>>;
 
 pub trait Environmental {
     #[throws(RuntimeError)]
@@ -88,14 +85,14 @@ pub struct EnvironmentImpl {
 
 impl EnvironmentImpl {
     pub fn new() -> Environment {
-        Arc::new(RwLock::new(Self {
+        Rc::new(RwLock::new(Self {
             values: HashMap::new(),
             enclosing: None,
         }))
     }
 
     pub fn nested(parent: Environment) -> Environment {
-        Arc::new(RwLock::new(Self {
+        Rc::new(RwLock::new(Self {
             values: HashMap::new(),
             enclosing: Some(parent.clone()),
         }))

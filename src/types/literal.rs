@@ -5,7 +5,7 @@ use {
         error::RuntimeError,
     },
     culpa::throw,
-    std::sync::Arc,
+    std::rc::Rc,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -21,9 +21,9 @@ pub enum LiteralValue {
 
 #[derive(Debug, Clone)]
 pub enum LochxCallable {
-    Function(Arc<Function>),
-    NativeFunction(Arc<NativeFunction>),
-    Class(Arc<Class>),
+    Function(Rc<Function>),
+    NativeFunction(Rc<NativeFunction>),
+    Class(Rc<Class>),
 }
 
 impl std::fmt::Display for LiteralValue {
@@ -60,29 +60,29 @@ impl LiteralValue {
 
 impl From<Class> for LiteralValue {
     fn from(value: Class) -> Self {
-        Self::Callable(LochxCallable::Class(Arc::new(value)))
+        Self::Callable(LochxCallable::Class(Rc::new(value)))
     }
 }
 
-impl From<Arc<Class>> for LiteralValue {
-    fn from(value: Arc<Class>) -> Self {
+impl From<Rc<Class>> for LiteralValue {
+    fn from(value: Rc<Class>) -> Self {
         Self::Callable(LochxCallable::Class(value))
     }
 }
 
 impl From<Function> for LiteralValue {
     fn from(value: Function) -> Self {
-        Self::Callable(LochxCallable::Function(Arc::new(value)))
+        Self::Callable(LochxCallable::Function(Rc::new(value)))
     }
 }
 
-impl From<Arc<Function>> for LiteralValue {
-    fn from(value: Arc<Function>) -> Self {
+impl From<Rc<Function>> for LiteralValue {
+    fn from(value: Rc<Function>) -> Self {
         Self::Callable(LochxCallable::Function(value))
     }
 }
 
-impl TryFrom<LiteralValue> for Arc<Class> {
+impl TryFrom<LiteralValue> for Rc<Class> {
     type Error = RuntimeError;
 
     fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
@@ -98,7 +98,7 @@ impl TryFrom<LiteralValue> for Arc<Class> {
     }
 }
 
-impl TryFrom<LiteralValue> for Arc<Function> {
+impl TryFrom<LiteralValue> for Rc<Function> {
     type Error = RuntimeError;
 
     fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {

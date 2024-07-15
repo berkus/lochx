@@ -8,17 +8,14 @@ use {
         scanner::Token,
     },
     culpa::throws,
-    std::{
-        collections::HashMap,
-        sync::{Arc, RwLock},
-    },
+    std::{collections::HashMap, rc::Rc, sync::RwLock},
 };
 
 /// Class holds methods.
 #[derive(Debug, Clone)]
 pub struct Class {
     pub name: String,
-    superclass: Option<Arc<Class>>,
+    superclass: Option<Rc<Class>>,
     methods: HashMap<String, Function>,
 }
 
@@ -35,7 +32,7 @@ impl std::fmt::Display for MethodsDisplayWrap {
 }
 
 // Emulate pointers to instances, as they exist by-reference.
-pub type LochxInstance = Arc<RwLock<LochxInstanceImpl>>;
+pub type LochxInstance = Rc<RwLock<LochxInstanceImpl>>;
 
 /// Instance holds fields.
 #[derive(Debug, Clone)]
@@ -47,7 +44,7 @@ pub struct LochxInstanceImpl {
 impl Class {
     pub fn new(
         name: String,
-        superclass: Option<Arc<Class>>,
+        superclass: Option<Rc<Class>>,
         methods: HashMap<String, Function>,
     ) -> Self {
         Self {
@@ -105,7 +102,7 @@ impl LochxInstanceImpl {
     }
 
     fn wrapped(&self) -> LochxInstance {
-        Arc::new(RwLock::new(self.clone()))
+        Rc::new(RwLock::new(self.clone()))
     }
 
     #[throws(RuntimeError)]

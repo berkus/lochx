@@ -8,7 +8,7 @@ use {
         stmt::{self, Acceptor as StmtAcceptor, Stmt},
     },
     culpa::throws,
-    std::sync::Arc,
+    std::rc::Rc,
 };
 
 pub struct AstPrinter;
@@ -34,7 +34,7 @@ impl AstPrinter {
     }
 
     #[throws(RuntimeError)]
-    fn parenthesize(&mut self, name: impl AsRef<str>, exprs: Vec<Arc<Expr>>) -> String {
+    fn parenthesize(&mut self, name: impl AsRef<str>, exprs: Vec<Rc<Expr>>) -> String {
         let mut s = "(".to_string() + name.as_ref();
         for expr in exprs {
             s += " ";
@@ -52,13 +52,13 @@ impl stmt::Visitor for AstPrinter {
     fn visit_print_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
         format!(
             "{};",
-            self.parenthesize("print", vec![Arc::new(stmt.clone())])?
+            self.parenthesize("print", vec![Rc::new(stmt.clone())])?
         )
     }
 
     #[throws(RuntimeError)]
     fn visit_expression_stmt(&mut self, stmt: &Expr) -> Self::ReturnType {
-        format!("{};", self.parenthesize("", vec![Arc::new(stmt.clone())])?)
+        format!("{};", self.parenthesize("", vec![Rc::new(stmt.clone())])?)
     }
 
     #[throws(RuntimeError)]
@@ -78,7 +78,7 @@ impl stmt::Visitor for AstPrinter {
         format!(
             "var {} = {};",
             stmt.name,
-            self.parenthesize("", vec![Arc::new(stmt.initializer.clone())])?
+            self.parenthesize("", vec![Rc::new(stmt.initializer.clone())])?
         )
     }
 

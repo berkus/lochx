@@ -12,7 +12,7 @@ use {
     },
     culpa::{throw, throws},
     liso::{liso, OutputOnly},
-    std::{collections::HashMap, sync::Arc},
+    std::{collections::HashMap, rc::Rc},
 };
 
 pub struct Interpreter {
@@ -27,7 +27,7 @@ impl Interpreter {
         let mut env = EnvironmentImpl::new();
         env.define(
             "clock",
-            LiteralValue::Callable(LochxCallable::NativeFunction(Arc::new(
+            LiteralValue::Callable(LochxCallable::NativeFunction(Rc::new(
                 callable::NativeFunction {
                     arity: 0,
                     body: callable::clock,
@@ -329,9 +329,9 @@ impl expr::Visitor for Interpreter {
         match callee {
             LiteralValue::Callable(callable) => {
                 let callable = match callable {
-                    LochxCallable::Function(f) => f as Arc<dyn Callable>,
-                    LochxCallable::NativeFunction(f) => f as Arc<dyn Callable>,
-                    LochxCallable::Class(c) => c as Arc<dyn Callable>,
+                    LochxCallable::Function(f) => f as Rc<dyn Callable>,
+                    LochxCallable::NativeFunction(f) => f as Rc<dyn Callable>,
+                    LochxCallable::Class(c) => c as Rc<dyn Callable>,
                 };
 
                 if expr.arguments.len() != callable.arity() {
@@ -389,7 +389,7 @@ impl expr::Visitor for Interpreter {
     fn visit_super_expr(&mut self, expr: &expr::Super) -> Self::ReturnType {
         let distance = self.locals.get(&expr.keyword);
         if let Some(distance) = distance {
-            let superclass: Arc<Class> = self
+            let superclass: Rc<Class> = self
                 .current_env
                 .get_at_by_name(*distance, "super")?
                 .try_into()?;

@@ -1,7 +1,7 @@
 use {
     crate::{callable::Function, error::RuntimeError, expr::Expr, scanner::Token},
     culpa::throws,
-    std::sync::Arc,
+    std::rc::Rc,
 };
 
 /// Statement AST node.
@@ -34,14 +34,14 @@ pub struct VarDecl {
 #[derive(Debug, Clone)]
 pub struct IfStmt {
     pub condition: Expr,
-    pub then_branch: Arc<Stmt>,
-    pub else_branch: Option<Arc<Stmt>>,
+    pub then_branch: Rc<Stmt>,
+    pub else_branch: Option<Rc<Stmt>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct WhileStmt {
     pub condition: Expr,
-    pub body: Arc<Stmt>,
+    pub body: Rc<Stmt>,
 }
 
 #[derive(Debug, Clone)]
