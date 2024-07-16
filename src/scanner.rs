@@ -148,6 +148,28 @@ pub struct Scanner<'src> {
 
 impl<'a> Scanner<'a> {
     pub fn new(source: &'a str, scan_offset: usize) -> Self {
+        let words = [
+            ("and", TokenType::KwAnd),
+            ("class", TokenType::KwClass),
+            ("else", TokenType::KwElse),
+            ("false", TokenType::KwFalse),
+            ("for", TokenType::KwFor),
+            ("fun", TokenType::KwFun),
+            ("if", TokenType::KwIf),
+            ("nil", TokenType::KwNil),
+            ("or", TokenType::KwOr),
+            ("print", TokenType::KwPrint),
+            ("return", TokenType::KwReturn),
+            ("super", TokenType::KwSuper),
+            ("this", TokenType::KwThis),
+            ("true", TokenType::KwTrue),
+            ("var", TokenType::KwVar),
+            ("while", TokenType::KwWhile),
+        ];
+        let mut keywords = SmallMap::with_capacity(words.len());
+        for w in words {
+            keywords.insert(w.0, w.1);
+        }
         Self {
             source,
             scan_offset,
@@ -156,24 +178,7 @@ impl<'a> Scanner<'a> {
             current_byte: 0,
             start_byte: 0,
             tokens: vec![],
-            keywords: hashmap! {
-                "and" => TokenType::KwAnd,
-                "class" => TokenType::KwClass,
-                "else" => TokenType::KwElse,
-                "false" => TokenType::KwFalse,
-                "for" => TokenType::KwFor,
-                "fun" => TokenType::KwFun,
-                "if" => TokenType::KwIf,
-                "nil" => TokenType::KwNil,
-                "or" => TokenType::KwOr,
-                "print" => TokenType::KwPrint,
-                "return" => TokenType::KwReturn,
-                "super" => TokenType::KwSuper,
-                "this" => TokenType::KwThis,
-                "true" => TokenType::KwTrue,
-                "var" => TokenType::KwVar,
-                "while" => TokenType::KwWhile,
-            },
+            keywords,
         }
     }
 
