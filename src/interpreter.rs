@@ -12,13 +12,14 @@ use {
     },
     culpa::{throw, throws},
     liso::{liso, OutputOnly},
-    std::{collections::HashMap, rc::Rc},
+    small_map::SmallMap,
+    std::rc::Rc,
 };
 
 pub struct Interpreter {
     out: OutputOnly,
     pub(super) globals: Environment,
-    locals: HashMap<Token, usize>,
+    locals: SmallMap<16, Token, usize>,
     current_env: Environment,
 }
 
@@ -38,7 +39,7 @@ impl Interpreter {
         Self {
             out,
             globals: env.clone(),
-            locals: HashMap::new(),
+            locals: SmallMap::new(),
             current_env: env,
         }
     }
@@ -51,10 +52,11 @@ impl Interpreter {
     }
 
     pub fn resolve(&mut self, token: &Token, index: usize) {
-        self.locals
-            .entry(token.clone())
-            .and_modify(|v| *v = index)
-            .or_insert(index);
+        if let Some(v) = self.locals.get_mut(token) {
+            *v = index;
+        } else {
+            self.locals.insert(token.clone(), index);
+        }
     }
 
     #[throws(RuntimeError)]
@@ -184,7 +186,8 @@ impl stmt::Visitor for Interpreter {
             self.current_env.clone()
         };
 
-        let mut methods = HashMap::<String, callable::Function>::with_capacity(stmt.methods.len());
+        let mut methods =
+            SmallMap::<16, String, callable::Function>::with_capacity(stmt.methods.len());
         for m in stmt.methods.iter().map(|m| m.function()) {
             let fun = callable::Function {
                 closure: self.current_env.clone(),

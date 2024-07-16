@@ -1,7 +1,6 @@
 use {
     crate::{error::RuntimeError, literal::LiteralValue, runtime},
-    maplit::hashmap,
-    std::collections::HashMap,
+    small_map::SmallMap,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -136,14 +135,14 @@ impl IsIdentifier for char {
 
 /// Current scanner state for iterating over the source input.
 pub struct Scanner<'src> {
-    source: &'src str,                          // Utf8 source
-    scan_offset: usize,                         // Start offset for piecewise scanning
-    line: usize,                                // Current line number
-    start_byte: usize,                          // Byte position inside the utf8 source
-    current_byte: usize,                        // Byte position inside the utf8 source
-    current_char: usize,                        // Char position inside the utf8 source
-    tokens: Vec<Token>,                         // List of collected tokens
-    keywords: HashMap<&'static str, TokenType>, // List of recognized keywords
+    source: &'src str,                               // Utf8 source
+    scan_offset: usize,                              // Start offset for piecewise scanning
+    line: usize,                                     // Current line number
+    start_byte: usize,                               // Byte position inside the utf8 source
+    current_byte: usize,                             // Byte position inside the utf8 source
+    current_char: usize,                             // Char position inside the utf8 source
+    tokens: Vec<Token>,                              // List of collected tokens
+    keywords: SmallMap<16, &'static str, TokenType>, // List of recognized keywords
 }
 
 impl<'a> Scanner<'a> {
@@ -363,12 +362,12 @@ impl<'a> Scanner<'a> {
             self.advance();
         }
 
-        let lexeme = self.lexeme();
-        if self.keywords.contains_key(&lexeme) {
-            self.add_token(self.keywords[&lexeme]);
+        let token = if let Some(&v) = self.keywords.get(self.lexeme()) {
+            v
         } else {
-            self.add_token(TokenType::Identifier);
-        }
+            TokenType::Identifier
+        };
+        self.add_token(token);
     }
 
     fn lexeme(&self) -> &str {

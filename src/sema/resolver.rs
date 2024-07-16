@@ -16,10 +16,10 @@ use {
         Interpreter,
     },
     culpa::{throw, throws},
-    std::collections::{hash_map::Entry, HashMap},
+    small_map::SmallMap,
 };
 
-type Scope = HashMap<String, bool>;
+type Scope = SmallMap<32, String, bool>;
 
 #[derive(Copy, Clone, PartialEq)]
 enum FunctionType {
@@ -77,7 +77,7 @@ impl<'interp> Resolver<'interp> {
 
     fn resolve_local(&mut self, name: &Token) {
         for (index, scope) in self.scopes.iter().rev().enumerate() {
-            if scope.contains_key(name.lexeme(runtime::source())) {
+            if scope.get(name.lexeme(runtime::source())).is_some() {
                 self.interpreter.resolve(name, index);
             }
         }
@@ -108,25 +108,26 @@ impl<'interp> Resolver<'interp> {
     #[throws(RuntimeError)]
     fn declare(&mut self, name: &Token) {
         if let Some(x) = self.scopes.last_mut() {
-            match x.entry(name.lexeme(runtime::source()).into()) {
-                Entry::Occupied(_) => {
-                    throw!(RuntimeError::DuplicateDeclaration(
-                        name.clone(),
-                        "Already a variable with this name in this scope",
-                    ));
-                }
-                Entry::Vacant(e) => {
-                    e.insert(false);
-                }
+            let key = name.lexeme(runtime::source());
+            if x.get(key).is_some() {
+                throw!(RuntimeError::DuplicateDeclaration(
+                    name.clone(),
+                    "Already a variable with this name in this scope",
+                ));
+            } else {
+                x.insert(key.into(), false);
             }
         }
     }
 
     fn define_by_name(&mut self, name: impl AsRef<str>) {
         if let Some(x) = self.scopes.last_mut() {
-            x.entry(name.as_ref().into())
-                .and_modify(|v| *v = true)
-                .or_insert(true);
+            let key = name.as_ref();
+            if let Some(e) = x.get_mut(key) {
+                *e = true;
+            } else {
+                x.insert(key.into(), true); // @fixme this probably wasn't in the original
+            }
         }
     }
 

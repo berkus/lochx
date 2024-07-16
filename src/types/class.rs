@@ -8,7 +8,8 @@ use {
         scanner::Token,
     },
     culpa::throws,
-    std::{collections::HashMap, rc::Rc, sync::RwLock},
+    small_map::SmallMap,
+    std::{rc::Rc, sync::RwLock},
 };
 
 /// Class holds methods.
@@ -16,15 +17,15 @@ use {
 pub struct Class {
     pub name: String,
     superclass: Option<Rc<Class>>,
-    methods: HashMap<String, Function>,
+    methods: SmallMap<16, String, Function>,
 }
 
 #[allow(unused)]
-struct MethodsDisplayWrap(HashMap<String, Function>);
+struct MethodsDisplayWrap(SmallMap<16, String, Function>);
 
 impl std::fmt::Display for MethodsDisplayWrap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (name, method) in &self.0 {
+        for (name, method) in self.0.iter() {
             writeln!(f, "{}->{}", name, method)?;
         }
         Ok(())
@@ -38,14 +39,14 @@ pub type LochxInstance = Rc<RwLock<LochxInstanceImpl>>;
 #[derive(Debug, Clone)]
 pub struct LochxInstanceImpl {
     pub class: Class,
-    fields: HashMap<String, LiteralValue>,
+    fields: SmallMap<16, String, LiteralValue>,
 }
 
 impl Class {
     pub fn new(
         name: String,
         superclass: Option<Rc<Class>>,
-        methods: HashMap<String, Function>,
+        methods: SmallMap<16, String, Function>,
     ) -> Self {
         Self {
             name,
@@ -55,10 +56,12 @@ impl Class {
     }
 
     pub fn find_method_by_name(&self, method_name: impl AsRef<str>) -> Option<Function> {
-        self.methods.get(method_name.as_ref()).cloned().or(self
-            .superclass
+        if let Some(m) = self.methods.get(method_name.as_ref()) {
+            return Some(m.clone());
+        }
+        self.superclass
             .clone()
-            .and_then(|sc| sc.find_method_by_name(method_name)))
+            .and_then(|sc| sc.find_method_by_name(method_name))
     }
 
     #[throws(RuntimeError)]
@@ -96,7 +99,7 @@ impl LochxInstanceImpl {
     pub fn new(class: Class) -> Self {
         Self {
             class,
-            fields: HashMap::new(),
+            fields: SmallMap::new(),
         }
     }
 
@@ -107,17 +110,20 @@ impl LochxInstanceImpl {
     #[throws(RuntimeError)]
     pub fn get(&self, name: Token) -> LiteralValue {
         let key = name.lexeme(runtime::source());
-        self.fields.get(key).cloned().map_or_else(
-            || {
-                let f = self.class.find_method(name.clone())?;
-                Ok::<LiteralValue, RuntimeError>(f.bind(&self.wrapped())?.into())
-            },
-            Ok,
-        )?
+        if let Some(v) = self.fields.get(key) {
+            return v.clone();
+        } else {
+            let f = self.class.find_method(name.clone())?;
+            return f.bind(&self.wrapped())?.into();
+        }
     }
 
     pub fn set(&mut self, name: Token, value: LiteralValue) {
         let key = name.lexeme(runtime::source());
-        *self.fields.entry(key.into()).or_default() = value;
+        if let Some(v) = self.fields.get_mut(key) {
+            *v = value;
+        } else {
+            self.fields.insert(key.into(), value);
+        }
     }
 }

@@ -1,7 +1,8 @@
 use {
     crate::{error::RuntimeError, literal::LiteralValue, runtime::source, scanner::Token},
     culpa::{throw, throws},
-    std::{collections::HashMap, rc::Rc, sync::RwLock},
+    small_map::SmallMap,
+    std::{rc::Rc, sync::RwLock},
 };
 
 pub type Environment = Rc<RwLock<EnvironmentImpl>>;
@@ -79,21 +80,21 @@ impl Environmental for Environment {
 
 #[derive(Debug)]
 pub struct EnvironmentImpl {
-    values: HashMap<String, LiteralValue>,
+    values: SmallMap<32, String, LiteralValue>,
     enclosing: Option<Environment>,
 }
 
 impl EnvironmentImpl {
     pub fn new() -> Environment {
         Rc::new(RwLock::new(Self {
-            values: HashMap::new(),
+            values: SmallMap::new(),
             enclosing: None,
         }))
     }
 
     pub fn nested(parent: Environment) -> Environment {
         Rc::new(RwLock::new(Self {
-            values: HashMap::new(),
+            values: SmallMap::new(),
             enclosing: Some(parent.clone()),
         }))
     }
@@ -125,8 +126,8 @@ impl Environmental for EnvironmentImpl {
 
     #[throws(RuntimeError)]
     fn get(&self, name: Token) -> LiteralValue {
-        if self.values.contains_key(name.lexeme(source())) {
-            return self.values.get(name.lexeme(source())).unwrap().clone();
+        if let Some(v) = self.values.get(name.lexeme(source())) {
+            return v.clone();
         }
         // @todo Use ancestor(distance=1):
         if let Some(parent) = &self.enclosing {
@@ -143,8 +144,8 @@ impl Environmental for EnvironmentImpl {
 
     #[throws(RuntimeError)]
     fn get_by_name(&self, name: impl AsRef<str>) -> LiteralValue {
-        if self.values.contains_key(name.as_ref()) {
-            return self.values.get(name.as_ref()).unwrap().clone();
+        if let Some(v) = self.values.get(name.as_ref()) {
+            return v.clone();
         }
         // @todo Use ancestor(distance=1):
         if let Some(parent) = &self.enclosing {
@@ -180,10 +181,8 @@ impl Environmental for EnvironmentImpl {
 
     #[throws(RuntimeError)]
     fn assign(&mut self, name: Token, value: LiteralValue) {
-        if self.values.contains_key(&name.to_string()) {
-            self.values
-                .entry(name.to_string())
-                .and_modify(|e| *e = value);
+        if let Some(v) = self.values.get_mut(&name.to_string()) {
+            *v = value;
             return;
         }
         // @todo Use ancestor(distance=1):
