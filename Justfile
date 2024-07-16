@@ -5,7 +5,7 @@ _default:
 samply:
     cargo build -Z build-std --target aarch64-apple-darwin --release
     samply record --save-only -o profile.json ./target/aarch64-apple-darwin/release/lochx tests/slow.lox
-    rm profile.json.gz
+    rm -f profile.json.gz
     gzip -9 profile.json
 
 # Load and view saved samply profile
