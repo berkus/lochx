@@ -20,14 +20,16 @@ impl OpCode {
         }
     }
 
-    pub fn write_to(&self, place: &mut Vec<u8>) {
+    pub fn write_to(&self, place: &mut Vec<u8>) -> usize {
         match self {
             OpCode::Return => {
                 place.push(0);
+                1
             }
             OpCode::Constant(i) => {
                 place.push(1);
                 place.push(*i);
+                2
             }
         }
     }

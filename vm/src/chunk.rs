@@ -6,6 +6,7 @@ use {
 
 pub struct Chunk {
     code: Vec<u8>,
+    pub lines: Vec<usize>,
     pub constants: Vec<Value>,
 }
 
@@ -13,12 +14,16 @@ impl Chunk {
     pub fn new() -> Self {
         Self {
             code: vec![],
+            lines: vec![],
             constants: vec![],
         }
     }
 
-    pub fn append_op(&mut self, op: OpCode) {
-        op.write_to(&mut self.code);
+    pub fn append_op(&mut self, op: OpCode, line: usize) {
+        let fill = op.write_to(&mut self.code);
+        for _ in 0..fill {
+            self.lines.push(line);
+        }
     }
 
     pub fn append_const(&mut self, constant: Value) -> u8 {
@@ -30,8 +35,8 @@ impl Chunk {
     #[throws(RuntimeError)]
     pub fn disassemble(&self, title: impl AsRef<str>) {
         println!("=== {} ===", title.as_ref());
-        //                          off  op   args
-        let mut table = Table::new("{:<} {:<} {:<}");
+        //                          off  line op   args
+        let mut table = Table::new("{:<} {:>} {:<} {:<}");
         let mut offset = 0;
         while offset < self.code.len() {
             offset = self.disassemble_instruction(&mut table, offset)?;
@@ -42,9 +47,15 @@ impl Chunk {
     #[throws(RuntimeError)]
     fn disassemble_instruction(&self, table: &mut Table, offset: usize) -> usize {
         let (op_size, insn, details) = OpCode::try_from(&self.code, offset)?.disassemble(self);
+        let line = if offset > 0 && self.lines[offset] == self.lines[offset - 1] {
+            "|".into()
+        } else {
+            format!("{}", self.lines[offset])
+        };
         table.add_row(
             Row::new()
                 .with_cell(offset)
+                .with_cell(line)
                 .with_cell(insn)
                 .with_cell(details),
         );

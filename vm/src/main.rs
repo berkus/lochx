@@ -33,8 +33,8 @@ struct Args {
 fn main() {
     let mut chunk = Chunk::new();
     let c = chunk.append_const(1.2);
-    chunk.append_op(OpCode::Constant(c));
-    chunk.append_op(OpCode::Return);
+    chunk.append_op(OpCode::Constant(c), 1);
+    chunk.append_op(OpCode::Return, 2);
     chunk.disassemble("Test")?;
 
     let args: Args = argh::from_env();
