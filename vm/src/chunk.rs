@@ -1,45 +1,30 @@
 use {
-    crate::error::RuntimeError,
+    crate::{error::RuntimeError, opcode::OpCode, value::Value},
     culpa::throws,
-    std::fmt::Display,
     tabular::{Row, Table},
 };
 
-pub enum OpCode {
-    Return,
-}
-
-impl TryFrom<u8> for OpCode {
-    type Error = RuntimeError;
-
-    #[throws(Self::Error)]
-    fn try_from(value: u8) -> Self {
-        match value {
-            0 => OpCode::Return,
-            _ => unimplemented!(),
-        }
-    }
-}
-
-impl Display for OpCode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                OpCode::Return => "RETURN",
-            }
-        )
-    }
-}
-
 pub struct Chunk {
     code: Vec<u8>,
+    pub constants: Vec<Value>,
 }
 
 impl Chunk {
     pub fn new() -> Self {
-        Self { code: vec![0] }
+        Self {
+            code: vec![],
+            constants: vec![],
+        }
+    }
+
+    pub fn append_op(&mut self, op: OpCode) {
+        op.write_to(&mut self.code);
+    }
+
+    pub fn append_const(&mut self, constant: Value) -> u8 {
+        let pos = self.constants.len();
+        self.constants.push(constant);
+        pos as u8
     }
 
     #[throws(RuntimeError)]
@@ -56,10 +41,13 @@ impl Chunk {
 
     #[throws(RuntimeError)]
     fn disassemble_instruction(&self, table: &mut Table, offset: usize) -> usize {
-        let insn: OpCode = self.code[offset].try_into()?;
+        let (op_size, insn, details) = OpCode::try_from(&self.code, offset)?.disassemble(self);
         table.add_row(
-            Row::new().with_cell(offset).with_cell(insn).with_cell(""), // .with_cell(insn.arg_decode()),
+            Row::new()
+                .with_cell(offset)
+                .with_cell(insn)
+                .with_cell(details),
         );
-        offset + 1
+        offset + op_size
     }
 }

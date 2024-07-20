@@ -5,11 +5,14 @@ use {
     error::RuntimeError,
     liso::{liso, OutputOnly, Response},
     miette::{miette, LabeledSpan, MietteDiagnostic, Report},
+    opcode::OpCode,
     std::sync::OnceLock,
 };
 
 mod chunk;
 mod error;
+mod opcode;
+mod value;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -28,7 +31,10 @@ struct Args {
 
 #[throws(RuntimeError)]
 fn main() {
-    let chunk = Chunk::new();
+    let mut chunk = Chunk::new();
+    let c = chunk.append_const(1.2);
+    chunk.append_op(OpCode::Constant(c));
+    chunk.append_op(OpCode::Return);
     chunk.disassemble("Test")?;
 
     let args: Args = argh::from_env();

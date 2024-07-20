@@ -6,4 +6,6 @@ pub enum RuntimeError {
     Usage(ErrReport),
     #[error("Could not read from file {0}")]
     IoError(#[from] std::io::Error),
+    #[error("Unknown opcode {0}")]
+    UnknownOpcode(u8),
 }
