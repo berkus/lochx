@@ -1,5 +1,5 @@
 use {
-    crate::{chunk::Chunk, error::RuntimeError, opcode::OpCode, value::Value},
+    crate::{chunk::Chunk, error::RuntimeError, opcode::OpCode, scanner::Scanner, value::Value},
     culpa::throws,
     tabular::Table,
     thiserror::Error,
@@ -26,6 +26,18 @@ impl<'vm> VM<'vm> {
             pc,
             stack: vec![],
         }
+    }
+
+    #[throws(InterpretError)]
+    pub fn interpret(&mut self, source: &str) {
+        let mut chunk = Chunk::new();
+
+        crate::compiler::compile(source, &mut chunk)?;
+
+        self.chunk = &chunk;
+        self.pc = 0;
+
+        self.run()?;
     }
 
     #[throws(InterpretError)]

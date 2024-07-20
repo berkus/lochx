@@ -8,6 +8,7 @@ use {
 };
 
 mod chunk;
+mod compiler;
 mod error;
 mod opcode;
 mod scanner;
