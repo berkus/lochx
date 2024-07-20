@@ -42,6 +42,8 @@ fn main() {
     let mut vm = VM::new(&chunk, 0);
     let _ = vm.run();
 
+    return;
+
     let args: Args = argh::from_env();
 
     if args.version {

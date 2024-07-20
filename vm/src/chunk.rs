@@ -45,7 +45,7 @@ impl Chunk {
     }
 
     #[throws(RuntimeError)]
-    fn disassemble_instruction(&self, table: &mut Table, offset: usize) -> usize {
+    pub fn disassemble_instruction(&self, table: &mut Table, offset: usize) -> usize {
         let (op_size, insn, details) = OpCode::try_from(&self.code, offset)?.disassemble(self);
         let line = if offset > 0 && self.lines[offset] == self.lines[offset - 1] {
             "|".into()
