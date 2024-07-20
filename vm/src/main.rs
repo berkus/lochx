@@ -1,18 +1,17 @@
 use {
     argh::FromArgs,
-    chunk::Chunk,
     culpa::{throw, throws},
     error::RuntimeError,
     liso::{liso, OutputOnly, Response},
     miette::{miette, LabeledSpan, MietteDiagnostic, Report},
-    opcode::OpCode,
     std::sync::OnceLock,
-    vm::VM,
 };
 
 mod chunk;
 mod error;
 mod opcode;
+mod scanner;
+mod token;
 mod value;
 mod vm;
 
@@ -33,23 +32,6 @@ struct Args {
 
 #[throws(RuntimeError)]
 fn main() {
-    let mut chunk = Chunk::new();
-    let a = chunk.append_const(1.2);
-    let b = chunk.append_const(3.4);
-    let c = chunk.append_const(5.6);
-    chunk.append_op(OpCode::Constant(a), 1);
-    chunk.append_op(OpCode::Constant(b), 1);
-    chunk.append_op(OpCode::Add, 1);
-    chunk.append_op(OpCode::Constant(c), 2);
-    chunk.append_op(OpCode::Divide, 2);
-    chunk.append_op(OpCode::Return, 3);
-    chunk.disassemble("Test")?;
-
-    let mut vm = VM::new(&chunk, 0);
-    let _ = vm.run();
-
-    return;
-
     let args: Args = argh::from_env();
 
     if args.version {

@@ -557,6 +557,7 @@ dependencies = [
  "argh",
  "culpa",
  "liso",
+ "maplit",
  "miette",
  "tabular",
  "thiserror",
