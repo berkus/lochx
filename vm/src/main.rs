@@ -34,9 +34,15 @@ struct Args {
 #[throws(RuntimeError)]
 fn main() {
     let mut chunk = Chunk::new();
-    let c = chunk.append_const(1.2);
-    chunk.append_op(OpCode::Constant(c), 123);
-    chunk.append_op(OpCode::Return, 123);
+    let a = chunk.append_const(1.2);
+    let b = chunk.append_const(3.4);
+    let c = chunk.append_const(5.6);
+    chunk.append_op(OpCode::Constant(a), 1);
+    chunk.append_op(OpCode::Constant(b), 1);
+    chunk.append_op(OpCode::Add, 1);
+    chunk.append_op(OpCode::Constant(c), 2);
+    chunk.append_op(OpCode::Divide, 2);
+    chunk.append_op(OpCode::Return, 3);
     chunk.disassemble("Test")?;
 
     let mut vm = VM::new(&chunk, 0);

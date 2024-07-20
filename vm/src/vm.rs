@@ -40,10 +40,34 @@ impl<'vm> VM<'vm> {
             self.pc += insn.size();
             match insn {
                 OpCode::Return => {
-                    println!("{:?}", self.stack.pop());
+                    println!("{}", self.stack.pop().unwrap());
                     return;
                 }
                 OpCode::Constant(i) => self.stack.push(self.chunk.constants[i as usize]),
+                OpCode::Negate => {
+                    let v = -self.stack.pop().unwrap();
+                    self.stack.push(v);
+                }
+                OpCode::Add => {
+                    let b = self.stack.pop().unwrap();
+                    let a = self.stack.pop().unwrap();
+                    self.stack.push(a + b);
+                }
+                OpCode::Subtract => {
+                    let b = self.stack.pop().unwrap();
+                    let a = self.stack.pop().unwrap();
+                    self.stack.push(a - b);
+                }
+                OpCode::Multiply => {
+                    let b = self.stack.pop().unwrap();
+                    let a = self.stack.pop().unwrap();
+                    self.stack.push(a * b);
+                }
+                OpCode::Divide => {
+                    let b = self.stack.pop().unwrap();
+                    let a = self.stack.pop().unwrap();
+                    self.stack.push(a / b);
+                }
                 _ => todo!(),
             }
         }
