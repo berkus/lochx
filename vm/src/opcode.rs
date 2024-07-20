@@ -20,17 +20,22 @@ impl OpCode {
         }
     }
 
-    pub fn write_to(&self, place: &mut Vec<u8>) -> usize {
+    pub fn write_to(&self, place: &mut Vec<u8>) {
         match self {
             OpCode::Return => {
                 place.push(0);
-                1
             }
             OpCode::Constant(i) => {
                 place.push(1);
                 place.push(*i);
-                2
             }
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        match self {
+            OpCode::Return => 1,
+            OpCode::Constant(_) => 2,
         }
     }
 
@@ -43,15 +48,3 @@ impl OpCode {
         }
     }
 }
-
-// impl Display for OpCode {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(
-//             f,
-//             "{}",
-//             match self {
-//                 OpCode::Return => "RETURN",
-//             }
-//         )
-//     }
-// }

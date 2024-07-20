@@ -5,7 +5,7 @@ use {
 };
 
 pub struct Chunk {
-    code: Vec<u8>,
+    pub code: Vec<u8>,
     pub lines: Vec<usize>,
     pub constants: Vec<Value>,
 }
@@ -20,8 +20,8 @@ impl Chunk {
     }
 
     pub fn append_op(&mut self, op: OpCode, line: usize) {
-        let fill = op.write_to(&mut self.code);
-        for _ in 0..fill {
+        op.write_to(&mut self.code);
+        for _ in 0..op.size() {
             self.lines.push(line);
         }
     }

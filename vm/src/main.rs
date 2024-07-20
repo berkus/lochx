@@ -7,12 +7,14 @@ use {
     miette::{miette, LabeledSpan, MietteDiagnostic, Report},
     opcode::OpCode,
     std::sync::OnceLock,
+    vm::VM,
 };
 
 mod chunk;
 mod error;
 mod opcode;
 mod value;
+mod vm;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -33,9 +35,12 @@ struct Args {
 fn main() {
     let mut chunk = Chunk::new();
     let c = chunk.append_const(1.2);
-    chunk.append_op(OpCode::Constant(c), 1);
-    chunk.append_op(OpCode::Return, 2);
+    chunk.append_op(OpCode::Constant(c), 123);
+    chunk.append_op(OpCode::Return, 123);
     chunk.disassemble("Test")?;
+
+    let mut vm = VM::new(&chunk, 0);
+    let _ = vm.run();
 
     let args: Args = argh::from_env();
 
